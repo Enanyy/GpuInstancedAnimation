@@ -7,7 +7,8 @@ public class GpuInstancedAnimationClip
     public enum WrapMode
     {
         Once,
-        Loop
+        Loop,
+        ClampForever,
     }
 
     public string Name;
@@ -19,7 +20,6 @@ public class GpuInstancedAnimationClip
 
     public GpuInstancedAnimationClip(string name, int startFrame, int endFrame, int frameCount)
     {
-        Name = name;
         StartFrame = startFrame;
         EndFrame = endFrame;
         FrameCount = frameCount;

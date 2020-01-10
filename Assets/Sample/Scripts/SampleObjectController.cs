@@ -5,7 +5,7 @@ using UnityEngine;
 public class SampleObjectController : MonoBehaviour
 {
     public SampleUIController UIController;
-    public GameObject Prefab;
+    public List<GameObject> Prefabs = new List<GameObject>();
 
     private int Count = 0;
 
@@ -33,7 +33,9 @@ public class SampleObjectController : MonoBehaviour
         {
             Vector2 v = Random.insideUnitCircle * radius;
 
-            GameObject go = Instantiate(Prefab) as GameObject;
+            GameObject prefab = Prefabs[Random.Range(0, Prefabs.Count)];
+
+            GameObject go = Instantiate(prefab) as GameObject;
             go.transform.position = new Vector3(v.x, 0, v.y);
             go.SetActive(true);
 

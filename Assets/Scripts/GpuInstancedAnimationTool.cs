@@ -7,10 +7,7 @@ using UnityEngine;
 
 public class GpuInstancedAnimationTool
 {
-    private const int BoneMatrixRowCount = 3;
-   
-
-    [MenuItem("Assets/MeshToAsset")]
+    [MenuItem("Assets/Generate GpuInstancedAnimation")]
     private static void Generate()
     {
         var targetObject = Selection.activeGameObject;
@@ -34,23 +31,25 @@ public class GpuInstancedAnimationTool
             return;
         }
 
+        string prefabName = targetObject.name;
+
         var selectionPath = Path.GetDirectoryName(AssetDatabase.GetAssetPath(targetObject));
         var skinnedMeshRenderer = skinnedMeshRenderers.First();
         var clips = animator.runtimeAnimatorController.animationClips;
 
-        Directory.CreateDirectory(Path.Combine(selectionPath, "AnimatedMesh"));
+        Directory.CreateDirectory(Path.Combine(selectionPath, prefabName));
 
         var animationTexture = GenerateAnimationTexture(targetObject, clips, skinnedMeshRenderer);
-        AssetDatabase.CreateAsset(animationTexture, string.Format("{0}/AnimatedMesh/{1}_AnimationTexture.asset", selectionPath, targetObject.name));
+        AssetDatabase.CreateAsset(animationTexture, string.Format("{0}/{1}/{2}_AnimationTexture.asset", selectionPath, prefabName,prefabName));
 
         var mesh = GenerateUvBoneWeightedMesh(skinnedMeshRenderer);
-        AssetDatabase.CreateAsset(mesh, string.Format("{0}/AnimatedMesh/{1}_Mesh.asset", selectionPath, targetObject.name));
+        AssetDatabase.CreateAsset(mesh, string.Format("{0}/{1}/{2}_Mesh.asset", selectionPath, prefabName,prefabName));
 
-        var material = GenerateMaterial(targetObject, skinnedMeshRenderer, animationTexture, clips, skinnedMeshRenderer.bones.Length);
-        AssetDatabase.CreateAsset(material, string.Format("{0}/AnimatedMesh/{1}_Material.asset", selectionPath, targetObject.name));
+        var material = GenerateMaterial( skinnedMeshRenderer, animationTexture,skinnedMeshRenderer.bones.Length);
+        AssetDatabase.CreateAsset(material, string.Format("{0}/{1}/{2}_Material.asset", selectionPath, prefabName, prefabName));
 
-        var go = GenerateMeshRendererObject(targetObject, mesh, material, clips);
-        PrefabUtility.SaveAsPrefabAsset(go,string.Format("{0}/AnimatedMesh/{1}.prefab", selectionPath, targetObject.name), out bool result);
+        var go = GenerateMeshRendererObject(targetObject, mesh, material, clips, skinnedMeshRenderer.bones);
+        PrefabUtility.SaveAsPrefabAsset(go,string.Format("{0}/{1}/{2}.prefab", selectionPath, prefabName,prefabName), out bool result);
 
         Object.DestroyImmediate(go);
     }
@@ -110,7 +109,7 @@ public class GpuInstancedAnimationTool
 
     private static Vector2 GetCalculatedTextureBoundary(IEnumerable<AnimationClip> clips, int boneLength)
     {
-        var boneMatrixCount = BoneMatrixRowCount * boneLength;
+        var boneMatrixCount = GpuInstancedAnimation.BoneMatrixRowCount * boneLength;
 
         var totalPixels = clips.Aggregate(boneMatrixCount, (pixels, currentClip) => pixels + boneMatrixCount * (int)(currentClip.length * GpuInstancedAnimation.TargetFrameRate));
 
@@ -132,18 +131,18 @@ public class GpuInstancedAnimationTool
         return new Vector2(textureWidth, textureHeight);
     }
 
-    private static Material GenerateMaterial(GameObject targetObject, SkinnedMeshRenderer smr, Texture texture, IEnumerable<AnimationClip> clips, int boneLength)
+    private static Material GenerateMaterial( SkinnedMeshRenderer smr, Texture texture, int boneLength)
     {
         var material = Object.Instantiate(smr.sharedMaterial);
         material.shader = Shader.Find("AnimationGpuInstancing/Standard");
         material.SetTexture("_AnimTex", texture);
-        material.SetInt("_PixelCountPerFrame", BoneMatrixRowCount * boneLength);
+        material.SetInt("_PixelCountPerFrame", GpuInstancedAnimation.BoneMatrixRowCount * boneLength);
         material.enableInstancing = true;
 
         return material;
     }
 
-    private static GameObject GenerateMeshRendererObject(GameObject targetObject, Mesh mesh, Material material, IEnumerable<AnimationClip> clips)
+    private static GameObject GenerateMeshRendererObject(GameObject targetObject, Mesh mesh, Material material, IEnumerable<AnimationClip> clips, Transform[] bones)
     {
         var go = new GameObject();
         go.name = targetObject.name;
@@ -163,6 +162,26 @@ public class GpuInstancedAnimationTool
 
             currentClipFrames = endFrame;
         }
+
+        var animationBoneExport = targetObject.GetComponent<GpuInstancedAnimationBoneExport>();
+        if (animationBoneExport && animationBoneExport.bones != null && animationBoneExport.bones.Count > 0 && bones != null)
+        {
+            for(int i = 0; i < bones.Length; ++i)
+            {
+                foreach(var bone in  animationBoneExport.bones)
+                {
+                    if(bone == bones[i])
+                    {
+                        if(animation.bones == null)
+                        {
+                            animation.bones = new List<GpuInstancedAnimationBone>();
+                        }
+                        animation.bones.Add(new GpuInstancedAnimationBone { boneName = bone.gameObject.name ,boneIndex = i, localPosition = bone.localPosition});
+                    }
+                }
+            }
+        }
+
         animation.mesh = mesh;
         animation.material = material;
         animation.animationClips = animationClips;
