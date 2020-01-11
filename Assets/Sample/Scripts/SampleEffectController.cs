@@ -12,15 +12,47 @@ public class SampleEffectController : MonoBehaviour
     private void Awake()
     {
         instancedAnimation = GetComponent<GpuInstancedAnimation>();
-        mEffect = Instantiate(Prefab) as GameObject;
-        mEffect.SetActive(true);
+       
+
+        instancedAnimation.onAnimationClipBegin += OnAnimationClipBegin;
+        instancedAnimation.onAnimationClipEnd += OnAnimationClipEnd;
+    }
+    void OnAnimationClipEnd(GpuInstancedAnimationClip clip)
+    {
+        if(clip!= null && clip.Name == "attack01")
+        {
+            if(mEffect== null)
+            {
+                mEffect = Instantiate(Prefab) as GameObject;
+                mEffect.SetActive(true);
+            }
+            if (mEffect.activeSelf)
+            {
+                mEffect.SetActive(false);
+            }
+        }
+    }
+    void OnAnimationClipBegin(GpuInstancedAnimationClip clip)
+    {
+        if (clip != null && clip.Name == "attack01")
+        {
+            if (mEffect == null)
+            {
+                mEffect = Instantiate(Prefab) as GameObject;
+                mEffect.SetActive(true);
+            }
+            if (mEffect.activeSelf == false)
+            {
+                mEffect.SetActive(true);
+            }
+        }
     }
     private void Update()
     {
-       if(instancedAnimation!= null)
+        if (instancedAnimation != null)
         {
             var frame = instancedAnimation.GetBoneFrame(boneName);
-            if(frame!= null)
+            if (frame != null)
             {
                 mEffect.transform.position = transform.TransformPoint(frame.localPosition);
                 mEffect.transform.rotation = frame.rotation;
