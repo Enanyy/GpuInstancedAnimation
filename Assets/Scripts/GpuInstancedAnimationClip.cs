@@ -20,6 +20,7 @@ public class GpuInstancedAnimationClip
 
     public GpuInstancedAnimationClip(string name, int startFrame, int endFrame, int frameCount)
     {
+        Name = name;
         StartFrame = startFrame;
         EndFrame = endFrame;
         FrameCount = frameCount;

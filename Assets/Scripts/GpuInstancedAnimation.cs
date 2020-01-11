@@ -20,9 +20,10 @@ public class GpuInstancedAnimation : MonoBehaviour
     public int currentFrame = 0;
 
     public List<GpuInstancedAnimationBone> bones;
+    public List<GpuInstancedAnimationBoneFrame> boneFrames;
 
     private Texture2D mAnimationTexture;
-    public Texture2D animationTexture
+    public Texture2D AnimationTexture
     {
         get
         {
@@ -37,7 +38,7 @@ public class GpuInstancedAnimation : MonoBehaviour
         }
     }
     private int mPixelCountPerFrame = -1;
-    public int pixelCountPerFrame
+    public int PixelCountPerFrame
     {
         get
         {
@@ -110,68 +111,40 @@ public class GpuInstancedAnimation : MonoBehaviour
             currentTime = 0;
         }
     }
-
-
     public GpuInstancedAnimationBone GetBone(string boneName)
     {
-        if(string.IsNullOrEmpty(boneName)==false && bones!= null)
+        if (bones == null || string.IsNullOrEmpty(boneName))
         {
-            for(int i = 0; i < bones.Count; i++)
+            return null;
+        }
+
+        for (int i = 0, count = bones.Count; i < count; ++i)
+        {
+            var bone = bones[i];
+            if(bone.boneName == boneName)
             {
-                if(bones[i].boneName == boneName)
-                {
-                    return bones[i];
-                }
+                return bone;
             }
         }
+
         return null;
     }
 
-    public Vector3 GetBonePosition(string boneName)
+    public GpuInstancedAnimationBoneFrame GetBoneFrame(string boneName)
     {
-        GpuInstancedAnimationBone bone = GetBone(boneName); 
-        if(bone!= null)
+        var bone = GetBone(boneName);
+        if (bone != null)
         {
-            Matrix4x4 matrix4X4 = GetBoneMatrix4x4(bone);
-            if(matrix4X4!= Matrix4x4.zero)
+            int frameIndex = 0;
+            if (currentAnimationClip != null)
             {
-                Vector4 v4 = matrix4X4 * bone.localPosition;
-
-                return transform.TransformPoint(new Vector3(v4.x, v4.y, v4.z));
+                frameIndex = currentAnimationClip.StartFrame + currentFrame;
             }
+            int index = frameIndex * bones.Count + bone.index;
+
+            return boneFrames[index];
         }
-        return Vector3.zero;
+        return null;
     }
-    public Matrix4x4 GetBoneMatrix4x4(GpuInstancedAnimationBone bone)
-    {
-        if(bone!= null)
-        {
-            int clampedIndex = currentFrame * pixelCountPerFrame;
-
-            int matrixIndex = clampedIndex + bone.boneIndex * BoneMatrixRowCount;
-
-            Color row0 = Tex2Dlod(matrixIndex);
-            Color row1 = Tex2Dlod(matrixIndex + 1);
-            Color row2 = Tex2Dlod(matrixIndex + 2);
-
-            return new Matrix4x4(new Vector4(row0.r, row0.g, row0.b, row0.a),
-                new Vector4(row1.r, row1.g, row1.b, row1.a),
-                new Vector4(row2.r, row2.g, row2.b, row2.a),
-                new Vector4(0, 0, 0, 0));
-
-        }
-        return Matrix4x4.zero;
-    }
-
-    private Color Tex2Dlod(int index)
-    {
-        if(animationTexture)
-        {
-            int x = index / animationTexture.width;
-            int y = index % animationTexture.width;
-
-            return animationTexture.GetPixel(x, y);
-        }
-        return Color.clear;
-    }
+   
 }

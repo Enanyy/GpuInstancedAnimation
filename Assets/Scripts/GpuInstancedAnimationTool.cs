@@ -48,7 +48,7 @@ public class GpuInstancedAnimationTool
         var material = GenerateMaterial( skinnedMeshRenderer, animationTexture,skinnedMeshRenderer.bones.Length);
         AssetDatabase.CreateAsset(material, string.Format("{0}/{1}/{2}_Material.asset", selectionPath, prefabName, prefabName));
 
-        var go = GenerateMeshRendererObject(targetObject, mesh, material, clips, skinnedMeshRenderer.bones);
+        var go = GenerateMeshRendererObject(targetObject, mesh, material, clips, skinnedMeshRenderer);
         PrefabUtility.SaveAsPrefabAsset(go,string.Format("{0}/{1}/{2}.prefab", selectionPath, prefabName,prefabName), out bool result);
 
         Object.DestroyImmediate(go);
@@ -107,6 +107,8 @@ public class GpuInstancedAnimationTool
         return texture;
     }
 
+   
+
     private static Vector2 GetCalculatedTextureBoundary(IEnumerable<AnimationClip> clips, int boneLength)
     {
         var boneMatrixCount = GpuInstancedAnimation.BoneMatrixRowCount * boneLength;
@@ -142,13 +144,35 @@ public class GpuInstancedAnimationTool
         return material;
     }
 
-    private static GameObject GenerateMeshRendererObject(GameObject targetObject, Mesh mesh, Material material, IEnumerable<AnimationClip> clips, Transform[] bones)
+    private static GameObject GenerateMeshRendererObject(GameObject targetObject, Mesh mesh, Material material, IEnumerable<AnimationClip> clips, SkinnedMeshRenderer smr)
     {
         var go = new GameObject();
         go.name = targetObject.name;
 
         var animation = go.AddComponent<GpuInstancedAnimation>();
-        
+
+        GpuInstancedAnimationBoneExport animationBoneExport = targetObject.GetComponent<GpuInstancedAnimationBoneExport>();
+        if (animationBoneExport != null && animationBoneExport.bones != null && animationBoneExport.bones.Count > 0)
+        {
+            List<GpuInstancedAnimationBone> animationBones = new List<GpuInstancedAnimationBone>();
+            List<GpuInstancedAnimationBoneFrame> animationBoneFrames = new List<GpuInstancedAnimationBoneFrame>();
+            foreach (var bone in smr.bones)
+            {
+                for (int i = 0; i < animationBoneExport.bones.Count; ++i)
+                {
+                    if (animationBoneExport.bones[i] == bone)
+                    {
+                        animationBones.Add(new GpuInstancedAnimationBone { boneName = bone.gameObject.name, index = i });
+                        var localPosition = targetObject.transform.InverseTransformPoint(bone.position);
+                        animationBoneFrames.Add(new GpuInstancedAnimationBoneFrame { localPosition = localPosition, rotation = bone.rotation });
+                    }
+                }
+            }
+
+            animation.bones = animationBones;
+            animation.boneFrames = animationBoneFrames;
+        }
+
         var animationClips = new List<GpuInstancedAnimationClip>();
         var currentClipFrames = 0;
 
@@ -161,22 +185,24 @@ public class GpuInstancedAnimationTool
             animationClips.Add(new GpuInstancedAnimationClip(clip.name, startFrame, endFrame, frameCount));
 
             currentClipFrames = endFrame;
-        }
 
-        var animationBoneExport = targetObject.GetComponent<GpuInstancedAnimationBoneExport>();
-        if (animationBoneExport && animationBoneExport.bones != null && animationBoneExport.bones.Count > 0 && bones != null)
-        {
-            for(int i = 0; i < bones.Length; ++i)
+            if (animationBoneExport != null && animationBoneExport.bones != null && animationBoneExport.bones.Count > 0)
             {
-                foreach(var bone in  animationBoneExport.bones)
+                var totalFrames = (int)(clip.length * GpuInstancedAnimation.TargetFrameRate);
+                foreach (var frame in Enumerable.Range(0, totalFrames))
                 {
-                    if(bone == bones[i])
+                    clip.SampleAnimation(targetObject, (float)frame / GpuInstancedAnimation.TargetFrameRate);
+
+                    foreach (var bone in smr.bones)
                     {
-                        if(animation.bones == null)
+                        for (int i = 0; i < animationBoneExport.bones.Count; ++i)
                         {
-                            animation.bones = new List<GpuInstancedAnimationBone>();
+                            if (animationBoneExport.bones[i] == bone)
+                            {
+                                var localPosition = targetObject.transform.InverseTransformPoint(bone.position);
+                                animation.boneFrames.Add(new GpuInstancedAnimationBoneFrame { localPosition = localPosition, rotation = bone.rotation });
+                            }
                         }
-                        animation.bones.Add(new GpuInstancedAnimationBone { boneName = bone.gameObject.name ,boneIndex = i, localPosition = bone.localPosition});
                     }
                 }
             }

@@ -17,11 +17,14 @@ public class SampleEffectController : MonoBehaviour
     }
     private void Update()
     {
-        if(instancedAnimation)
+       if(instancedAnimation!= null)
         {
-            Vector3 position = instancedAnimation.GetBonePosition(boneName);
-
-            mEffect.transform.position = position;
+            var frame = instancedAnimation.GetBoneFrame(boneName);
+            if(frame!= null)
+            {
+                mEffect.transform.position = transform.TransformPoint(frame.localPosition);
+                mEffect.transform.rotation = frame.rotation;
+            }
         }
     }
 }

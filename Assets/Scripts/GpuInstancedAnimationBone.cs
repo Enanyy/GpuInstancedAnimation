@@ -1,10 +1,16 @@
 ﻿using System;
 using UnityEngine;
-[System.Serializable]
+[Serializable]
 public class GpuInstancedAnimationBone
 {
     public string boneName;
-    public int boneIndex;
-    public Vector3 localPosition;
+    public int index;
 }
+[Serializable]
+public class GpuInstancedAnimationBoneFrame
+{
+    public Vector3 localPosition;
+    public Quaternion rotation;
+}
+
 
