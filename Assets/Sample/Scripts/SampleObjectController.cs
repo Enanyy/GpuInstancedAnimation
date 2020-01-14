@@ -39,6 +39,11 @@ public class SampleObjectController : MonoBehaviour
             go.transform.position = new Vector3(v.x, 0, v.y);
             go.SetActive(true);
 
+            if(Count == 1)
+            {
+                go.AddComponent<SamplePlay>();
+            }
+
             GpuInstancedAnimation animation = go.GetComponent<GpuInstancedAnimation>();
 
             int index = Random.Range(0, animation.animationClips.Count);

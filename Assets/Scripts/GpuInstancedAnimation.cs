@@ -13,13 +13,13 @@ public class GpuInstancedAnimation : MonoBehaviour
 
     private MaterialPropertyBlock materialPropertyBlock;
 
-    private GpuInstancedAnimationFrame mCurrentAnimationFrame;
-    private GpuInstancedAnimationFrame mPreviousAnimationFrame;
+    private GpuInstancedAnimationClip mCurrentAnimationClip;
+    private GpuInstancedAnimationClip mPreviousAnimationClip;
 
     private int mFadeFrame = 0;
 
     public event System.Action<GpuInstancedAnimationClip> onAnimationClipBegin;
-    public event System.Action<GpuInstancedAnimationClip,int> onAnimationClipUpdate;
+    public event System.Action<GpuInstancedAnimationClip> onAnimationClipUpdate;
     public event System.Action<GpuInstancedAnimationClip> onAnimationClipEnd;
 
     public List<GpuInstancedAnimationBone> bones;
@@ -56,17 +56,17 @@ public class GpuInstancedAnimation : MonoBehaviour
         }
     }
 
-    public void OnAnimationClipBegin(GpuInstancedAnimationFrame frame)
+    public void OnAnimationClipBegin(GpuInstancedAnimationClip clip)
     {
-        onAnimationClipBegin?.Invoke(frame.CurrentAnimationClip);
+        onAnimationClipBegin?.Invoke(clip);
     }
-    public void OnAnimationClipUpdate(GpuInstancedAnimationFrame frame)
+    public void OnAnimationClipUpdate(GpuInstancedAnimationClip clip)
     {
-        onAnimationClipUpdate?.Invoke(frame.CurrentAnimationClip, frame.CurrentFrame);
+        onAnimationClipUpdate?.Invoke(clip);
     }
-    public void OnAnimationClipEnd(GpuInstancedAnimationFrame frame)
+    public void OnAnimationClipEnd(GpuInstancedAnimationClip clip)
     {
-        onAnimationClipEnd?.Invoke(frame.CurrentAnimationClip);
+        onAnimationClipEnd?.Invoke(clip);
     }
     // Update is called once per frame
     void Update()
@@ -76,21 +76,40 @@ public class GpuInstancedAnimation : MonoBehaviour
             materialPropertyBlock = new MaterialPropertyBlock();
         }
 
-        if(mPreviousAnimationFrame!= null)
+        if (mCurrentAnimationClip != null)
         {
-            mPreviousAnimationFrame.Update();
-        }
+            mCurrentAnimationClip.Update();
+            materialPropertyBlock.SetInt("_CurrentFrame", mCurrentAnimationClip.GetCurrentFrame());
 
-        if (mCurrentAnimationFrame != null)
-        {
-            mCurrentAnimationFrame.Update();
-            materialPropertyBlock.SetInt("_CurrentFrame", mCurrentAnimationFrame.GetCurrentFrame());
-
-            float fadeStrength = 1;
-            if(mPreviousAnimationFrame!= null)
+            int previousFrame = 0;
+            if(mPreviousAnimationClip != null)
             {
+                mPreviousAnimationClip.Update();
+                
+                previousFrame = mPreviousAnimationClip.GetCurrentFrame();
 
+                if (mPreviousAnimationClip.CurrentFrame >= mPreviousAnimationClip.EndFrame - 1)
+                {
+                    mPreviousAnimationClip = null;
+                }
             }
+            float fadeStrength = 1;
+
+            if (mPreviousAnimationClip != null)
+            {
+                if (mFadeFrame > 0 && mCurrentAnimationClip.CurrentFrame < mFadeFrame)
+                {
+                    fadeStrength = mCurrentAnimationClip.CurrentFrame * 1f / mFadeFrame;
+                }
+                else
+                {
+                    mFadeFrame = 0;
+                }
+            }
+
+            materialPropertyBlock.SetInt("_PreviousFrame", previousFrame);
+            materialPropertyBlock.SetFloat("_FadeStrength", fadeStrength);
+
         }
 
         Matrix4x4 matrix = transform.localToWorldMatrix;
@@ -104,21 +123,18 @@ public class GpuInstancedAnimation : MonoBehaviour
         {
             return;
         }
-
-        GpuInstancedAnimationFrame temp = mPreviousAnimationFrame;
-        mPreviousAnimationFrame = mCurrentAnimationFrame;
-
-        var clip = animationClips.Find((x) => x.Name == clipName);
-
-        if (clip != null)
+        if(mCurrentAnimationClip!= null && mCurrentAnimationClip.Name == clipName)
         {
-            if(temp == null)
-            {
-                temp = new GpuInstancedAnimationFrame(this);
-            }
-            temp.Reset(clip, offsetFrame);
+            return;
+        }
 
-            mCurrentAnimationFrame = temp;
+        mPreviousAnimationClip = mCurrentAnimationClip;
+
+        mCurrentAnimationClip = animationClips.Find((x) => x.Name == clipName);
+
+        if (mCurrentAnimationClip != null)
+        {
+            mCurrentAnimationClip.Reset(this, offsetFrame);
 
             mFadeFrame = fadeFrame;
         }
@@ -148,9 +164,9 @@ public class GpuInstancedAnimation : MonoBehaviour
         if (bone != null)
         {
             int frameIndex = 0;
-            if (mCurrentAnimationFrame!=null )
+            if (mCurrentAnimationClip != null )
             {
-                frameIndex = mCurrentAnimationFrame.GetCurrentFrame();
+                frameIndex = mCurrentAnimationClip.GetCurrentFrame();
             }
             int index = frameIndex * bones.Count + bone.index;
 

@@ -9,6 +9,8 @@ Shader "AnimationGpuInstancing/StandardTransparent" {
 
 		[NoScaleOffset] _AnimTex("Animation Texture", 2D) = "white" {}
 		[HideInInspector] [PerRendererData] _CurrentFrame("", Int) = 0
+		[HideInInspector][PerRendererData] _PreviousFrame("", Int) = 0
+		[HideInInspector][PerRendererData] _FadeStrength("", Range(0,1)) = 0
 		[HideInInspector] _PixelCountPerFrame("", Int) = 0
 	}
 
@@ -41,6 +43,10 @@ Shader "AnimationGpuInstancing/StandardTransparent" {
 
 		UNITY_DEFINE_INSTANCED_PROP(int, _CurrentFrame)
 #define _CurrentFrame_arr Props
+		UNITY_DEFINE_INSTANCED_PROP(int, _PreviousFrame)
+#define _PreviousFrame_arr Props
+		UNITY_DEFINE_INSTANCED_PROP(float, _FadeStrength)
+#define _FadeStrength_arr Props
 		UNITY_DEFINE_INSTANCED_PROP(fixed4, _Color)
 #define _Color_arr Props
 
@@ -82,28 +88,52 @@ Shader "AnimationGpuInstancing/StandardTransparent" {
 			UNITY_INITIALIZE_OUTPUT(Input, o);
 
 			int currentFrame = UNITY_ACCESS_INSTANCED_PROP(_CurrentFrame_arr, _CurrentFrame);
-			
+
 			int clampedIndex = currentFrame * _PixelCountPerFrame;
-			
+
 			float4x4 bone1Matrix = GetMatrix(clampedIndex, v.boneIndex.x);
 			float4x4 bone2Matrix = GetMatrix(clampedIndex, v.boneIndex.y);
 			float4x4 bone3Matrix = GetMatrix(clampedIndex, v.boneIndex.z);
 			float4x4 bone4Matrix = GetMatrix(clampedIndex, v.boneIndex.w);
 
-			float4 pos =
+			float4 currentPosition =
 				mul(bone1Matrix, v.vertex) * v.boneWeight.x +
 				mul(bone2Matrix, v.vertex) * v.boneWeight.y +
 				mul(bone3Matrix, v.vertex) * v.boneWeight.z +
 				mul(bone4Matrix, v.vertex) * v.boneWeight.w;
 
-			float4 normal =
+			float4 currentNormal =
 				mul(bone1Matrix, v.normal) * v.boneWeight.x +
 				mul(bone2Matrix, v.normal) * v.boneWeight.y +
 				mul(bone3Matrix, v.normal) * v.boneWeight.z +
 				mul(bone4Matrix, v.normal) * v.boneWeight.w;
 
-			v.vertex = pos;
-			v.normal = normal;
+
+			currentFrame = UNITY_ACCESS_INSTANCED_PROP(_PreviousFrame_arr, _PreviousFrame);
+
+			clampedIndex = currentFrame * _PixelCountPerFrame;
+
+			bone1Matrix = GetMatrix(clampedIndex, v.boneIndex.x);
+			bone2Matrix = GetMatrix(clampedIndex, v.boneIndex.y);
+			bone3Matrix = GetMatrix(clampedIndex, v.boneIndex.z);
+			bone4Matrix = GetMatrix(clampedIndex, v.boneIndex.w);
+
+			float4 previousPosition =
+				mul(bone1Matrix, v.vertex) * v.boneWeight.x +
+				mul(bone2Matrix, v.vertex) * v.boneWeight.y +
+				mul(bone3Matrix, v.vertex) * v.boneWeight.z +
+				mul(bone4Matrix, v.vertex) * v.boneWeight.w;
+
+			float4 previousNormal =
+				mul(bone1Matrix, v.normal) * v.boneWeight.x +
+				mul(bone2Matrix, v.normal) * v.boneWeight.y +
+				mul(bone3Matrix, v.normal) * v.boneWeight.z +
+				mul(bone4Matrix, v.normal) * v.boneWeight.w;
+
+			float fadeStrength = UNITY_ACCESS_INSTANCED_PROP(_FadeStrength_arr, _FadeStrength);
+
+			v.vertex = previousPosition * (1 - fadeStrength) + currentPosition * fadeStrength;
+			v.normal = previousNormal * (1 - fadeStrength) + currentNormal * fadeStrength;
 		}
 
 		void surf(Input IN, inout SurfaceOutputStandard o) {
