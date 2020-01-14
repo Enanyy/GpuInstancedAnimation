@@ -49,7 +49,7 @@ public class SampleEffectController : MonoBehaviour
     }
     private void Update()
     {
-        if (instancedAnimation != null)
+        if (instancedAnimation != null && mEffect)
         {
             var frame = instancedAnimation.GetBoneFrame(boneName);
             if (frame != null)

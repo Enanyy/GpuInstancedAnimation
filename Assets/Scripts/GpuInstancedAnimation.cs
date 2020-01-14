@@ -13,35 +13,13 @@ public class GpuInstancedAnimation : MonoBehaviour
 
     private MaterialPropertyBlock materialPropertyBlock;
 
-    public GpuInstancedAnimationClip CurrentAnimationClip { get; private set; }
+    private GpuInstancedAnimationFrame mCurrentAnimationFrame;
+    private GpuInstancedAnimationFrame mPreviousAnimationFrame;
 
-    private int mCurrentOffsetFrame = 0;
-    private float mCurrentTime = 0;
-    private int mCurrentFrame = 0;
-    public int CurrentFrame
-    {
-        get
-        {
-            return mCurrentFrame;
-        }
-        set
-        {
-            mCurrentFrame = value;
-            if(CurrentAnimationClip!= null)
-            {
-                if(mCurrentFrame == 0)
-                {
-                    onAnimationClipBegin?.Invoke(CurrentAnimationClip);
-                }
+    private int mFadeFrame = 0;
 
-                if(mCurrentFrame >= CurrentAnimationClip.FrameCount -1)
-                {
-                    onAnimationClipEnd?.Invoke(CurrentAnimationClip);
-                }
-            }
-        }
-    }
     public event System.Action<GpuInstancedAnimationClip> onAnimationClipBegin;
+    public event System.Action<GpuInstancedAnimationClip,int> onAnimationClipUpdate;
     public event System.Action<GpuInstancedAnimationClip> onAnimationClipEnd;
 
     public List<GpuInstancedAnimationBone> bones;
@@ -77,63 +55,72 @@ public class GpuInstancedAnimation : MonoBehaviour
             return mPixelCountPerFrame;
         }
     }
+
+    public void OnAnimationClipBegin(GpuInstancedAnimationFrame frame)
+    {
+        onAnimationClipBegin?.Invoke(frame.CurrentAnimationClip);
+    }
+    public void OnAnimationClipUpdate(GpuInstancedAnimationFrame frame)
+    {
+        onAnimationClipUpdate?.Invoke(frame.CurrentAnimationClip, frame.CurrentFrame);
+    }
+    public void OnAnimationClipEnd(GpuInstancedAnimationFrame frame)
+    {
+        onAnimationClipEnd?.Invoke(frame.CurrentAnimationClip);
+    }
     // Update is called once per frame
     void Update()
     {
-        mCurrentTime += Time.deltaTime;
-
-        if (CurrentAnimationClip != null)
+        if (materialPropertyBlock == null)
         {
-            if (CurrentAnimationClip.wrapMode == GpuInstancedAnimationClip.WrapMode.Once)
-            {
-                CurrentFrame = ((int)(mCurrentTime * TargetFrameRate) + mCurrentOffsetFrame);
-
-                if (CurrentFrame >= CurrentAnimationClip.FrameCount)
-                {
-                    CurrentFrame = 0;//重置到第0帧
-                }
-            }
-            else if(CurrentAnimationClip.wrapMode  == GpuInstancedAnimationClip.WrapMode.ClampForever)
-            {
-                CurrentFrame = ((int)(mCurrentTime * TargetFrameRate) + mCurrentOffsetFrame);
-
-                if (CurrentFrame >= CurrentAnimationClip.FrameCount - 1)
-                {
-                    CurrentFrame = CurrentAnimationClip.FrameCount - 1;//固定在最后一帧
-                }
-            }
-            else
-            {
-                CurrentFrame = ((int)(mCurrentTime * TargetFrameRate) + mCurrentOffsetFrame) % CurrentAnimationClip.FrameCount;
-
-            }
-
-            if (materialPropertyBlock == null)
-            {
-                materialPropertyBlock = new MaterialPropertyBlock();
-            }
-           
-            materialPropertyBlock.SetInt("_CurrentFrame", CurrentAnimationClip.StartFrame + CurrentFrame);
+            materialPropertyBlock = new MaterialPropertyBlock();
         }
-        
+
+        if(mPreviousAnimationFrame!= null)
+        {
+            mPreviousAnimationFrame.Update();
+        }
+
+        if (mCurrentAnimationFrame != null)
+        {
+            mCurrentAnimationFrame.Update();
+            materialPropertyBlock.SetInt("_CurrentFrame", mCurrentAnimationFrame.GetCurrentFrame());
+
+            float fadeStrength = 1;
+            if(mPreviousAnimationFrame!= null)
+            {
+
+            }
+        }
+
         Matrix4x4 matrix = transform.localToWorldMatrix;
 
         Graphics.DrawMesh(mesh, matrix, material, gameObject.layer, null, 0, materialPropertyBlock);
     }
 
-    public void Play(string clip, int offsetFrame = 0)
+    public void Play(string clipName, int offsetFrame = 0, int fadeFrame = 0)
     {
         if (animationClips == null)
         {
             return;
         }
 
-        CurrentAnimationClip = animationClips.Find((x) => x.Name == clip);
+        GpuInstancedAnimationFrame temp = mPreviousAnimationFrame;
+        mPreviousAnimationFrame = mCurrentAnimationFrame;
 
-        if (CurrentAnimationClip != null)
+        var clip = animationClips.Find((x) => x.Name == clipName);
+
+        if (clip != null)
         {
-            mCurrentOffsetFrame = offsetFrame;
-            mCurrentTime = 0;
+            if(temp == null)
+            {
+                temp = new GpuInstancedAnimationFrame(this);
+            }
+            temp.Reset(clip, offsetFrame);
+
+            mCurrentAnimationFrame = temp;
+
+            mFadeFrame = fadeFrame;
         }
     }
     public GpuInstancedAnimationBone GetBone(string boneName)
@@ -161,9 +148,9 @@ public class GpuInstancedAnimation : MonoBehaviour
         if (bone != null)
         {
             int frameIndex = 0;
-            if (CurrentAnimationClip != null)
+            if (mCurrentAnimationFrame!=null )
             {
-                frameIndex = CurrentAnimationClip.StartFrame + CurrentFrame;
+                frameIndex = mCurrentAnimationFrame.GetCurrentFrame();
             }
             int index = frameIndex * bones.Count + bone.index;
 
