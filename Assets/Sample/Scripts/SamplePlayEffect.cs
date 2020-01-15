@@ -9,7 +9,7 @@ public class SamplePlayEffect : MonoBehaviour
     private GpuInstancedAnimation instancedAnimation;
 
     private GameObject mEffect;
-    private void Awake()
+    private void Start()
     {
         instancedAnimation = GetComponent<GpuInstancedAnimation>();
        
