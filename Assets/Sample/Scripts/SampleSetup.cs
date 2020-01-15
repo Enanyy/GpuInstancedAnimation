@@ -2,14 +2,17 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SampleObjectController : MonoBehaviour
+public class SampleSetup : MonoBehaviour
 {
-    public SampleUIController UIController;
+    public SampleUI UIController;
     public List<GameObject> Prefabs = new List<GameObject>();
 
     private int Count = 0;
 
     public float radius = 10;
+
+    private bool Controll = false;
+    private bool ShowEffect = false;
     // Start is called before the first frame update
     void Start()
     {
@@ -22,6 +25,11 @@ public class SampleObjectController : MonoBehaviour
             };
 
             UIController.InstantiateButtonClicked += InstantiateObject;
+            UIController.ControllToggleValueChanged += (v) => {
+                Controll = v;
+            };
+
+            UIController.ShowEffectToggleValueChanged += (v) => { ShowEffect = v; };
         }
 
 
@@ -39,9 +47,15 @@ public class SampleObjectController : MonoBehaviour
             go.transform.position = new Vector3(v.x, 0, v.y);
             go.SetActive(true);
 
-            if(Count == 1)
+            if(Controll)
             {
                 go.AddComponent<SamplePlay>();
+            }
+
+            SamplePlayEffect samplePlayEffect = go.GetComponent<SamplePlayEffect>();
+            if(samplePlayEffect!= null)
+            {
+                samplePlayEffect.enabled = ShowEffect;
             }
 
             GpuInstancedAnimation animation = go.GetComponent<GpuInstancedAnimation>();

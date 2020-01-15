@@ -1,6 +1,6 @@
 ﻿using System;
 using UnityEngine;
-public class SampleEffectController : MonoBehaviour
+public class SamplePlayEffect : MonoBehaviour
 {
     public GameObject Prefab;
 

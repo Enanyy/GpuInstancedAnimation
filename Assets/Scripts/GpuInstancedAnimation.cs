@@ -14,6 +14,9 @@ public class GpuInstancedAnimation : MonoBehaviour
     private MaterialPropertyBlock materialPropertyBlock;
 
     private GpuInstancedAnimationClip mCurrentAnimationClip;
+
+    public float speed = 1;
+
     private GpuInstancedAnimationClip mPreviousAnimationClip;
 
     private int mFadeFrame = 0;
@@ -24,37 +27,6 @@ public class GpuInstancedAnimation : MonoBehaviour
 
     public List<GpuInstancedAnimationBone> bones;
     public List<GpuInstancedAnimationBoneFrame> boneFrames;
-
-    private Texture2D mAnimationTexture;
-    public Texture2D AnimationTexture
-    {
-        get
-        {
-            if(mAnimationTexture== null)
-            {
-                if(material)
-                {
-                    mAnimationTexture = material.GetTexture("_AnimTex") as Texture2D;
-                }
-            }
-            return mAnimationTexture;
-        }
-    }
-    private int mPixelCountPerFrame = -1;
-    public int PixelCountPerFrame
-    {
-        get
-        {
-            if(mPixelCountPerFrame < 0)
-            {
-                if(material)
-                {
-                    mPixelCountPerFrame = material.GetInt("_PixelCountPerFrame");
-                }
-            }
-            return mPixelCountPerFrame;
-        }
-    }
 
     public void OnAnimationClipBegin(GpuInstancedAnimationClip clip)
     {
@@ -68,6 +40,7 @@ public class GpuInstancedAnimation : MonoBehaviour
     {
         onAnimationClipEnd?.Invoke(clip);
     }
+
     // Update is called once per frame
     void Update()
     {

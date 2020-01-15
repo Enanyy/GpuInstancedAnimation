@@ -30,6 +30,7 @@ public class GpuInstancedAnimationClip
     private int mCurrentOffsetFrame = 0;
     private float mCurrentTime = 0;
     private int mCurrentFrame = 0;
+
     public int CurrentFrame
     {
         get
@@ -70,9 +71,17 @@ public class GpuInstancedAnimationClip
         mCurrentTime = 0;
     }
 
+    public float Speed
+    {
+        get
+        {
+            return mAnimation != null ? mAnimation.speed : 1;
+        }
+    }
+
     public void Update()
     {
-        mCurrentTime += Time.deltaTime;
+        mCurrentTime += Time.deltaTime * Speed;
 
         if (wrapMode == WrapMode.Once)
         {
@@ -83,7 +92,7 @@ public class GpuInstancedAnimationClip
                 CurrentFrame = 0;//重置到第0帧
             }
         }
-        else if (wrapMode == GpuInstancedAnimationClip.WrapMode.ClampForever)
+        else if (wrapMode == WrapMode.ClampForever)
         {
             CurrentFrame = ((int)(mCurrentTime * GpuInstancedAnimation.TargetFrameRate) + mCurrentOffsetFrame);
 
