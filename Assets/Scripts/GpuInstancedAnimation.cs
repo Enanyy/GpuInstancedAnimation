@@ -109,7 +109,7 @@ public class GpuInstancedAnimation : MonoBehaviour
         {
             mCurrentAnimationClip.Reset(this, offsetFrame);
 
-            mFadeFrame = fadeFrame;
+            mFadeFrame = Mathf.Clamp(fadeFrame, 0, mCurrentAnimationClip.FrameCount);
         }
     }
     public GpuInstancedAnimationBone GetBone(string boneName)
@@ -131,19 +131,38 @@ public class GpuInstancedAnimation : MonoBehaviour
         return null;
     }
 
+    private static GpuInstancedAnimationBoneFrame boneFrame = new GpuInstancedAnimationBoneFrame();
     public GpuInstancedAnimationBoneFrame GetBoneFrame(string boneName)
     {
         var bone = GetBone(boneName);
         if (bone != null)
         {
-            int frameIndex = 0;
+            int currentFrame = 0;
             if (mCurrentAnimationClip != null )
             {
-                frameIndex = mCurrentAnimationClip.GetCurrentFrame();
+                currentFrame = mCurrentAnimationClip.GetCurrentFrame();
             }
-            int index = frameIndex * bones.Count + bone.index;
+            int currentIndex = currentFrame * bones.Count + bone.index;
 
-            return boneFrames[index];
+            var currentBoneFrame = boneFrames[currentIndex];
+
+            if(mFadeFrame > 0 && mCurrentAnimationClip.CurrentFrame < mFadeFrame &&  mPreviousAnimationClip != null)
+            {
+                int previousFrame = mPreviousAnimationClip.GetCurrentFrame();
+
+                int previousIndex = previousFrame * bones.Count + bone.index;
+
+                var previousBoneFrame = boneFrames[previousIndex];
+
+                float fadeStrength = mCurrentAnimationClip.CurrentFrame * 1f / mFadeFrame;
+
+                boneFrame.localPosition = Vector3.Lerp(previousBoneFrame.localPosition, currentBoneFrame.localPosition, fadeStrength);
+                boneFrame.rotation = Quaternion.Lerp(previousBoneFrame.rotation, currentBoneFrame.rotation, fadeStrength);
+
+                return boneFrame;
+            }
+
+            return currentBoneFrame;
         }
         return null;
     }

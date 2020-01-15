@@ -27,7 +27,7 @@ public class GpuInstancedAnimationClip
     }
 
     private GpuInstancedAnimation mAnimation;
-    private int mCurrentOffsetFrame = 0;
+    private int mOffsetFrame = 0;
     private float mCurrentTime = 0;
     private int mCurrentFrame = 0;
 
@@ -66,7 +66,7 @@ public class GpuInstancedAnimationClip
     {
         mAnimation = animation;
 
-        mCurrentOffsetFrame = offsetFrame;
+        mOffsetFrame = offsetFrame;
         mCurrentFrame = 0;
         mCurrentTime = 0;
     }
@@ -85,7 +85,7 @@ public class GpuInstancedAnimationClip
 
         if (wrapMode == WrapMode.Once)
         {
-            CurrentFrame = ((int)(mCurrentTime * GpuInstancedAnimation.TargetFrameRate) + mCurrentOffsetFrame);
+            CurrentFrame = ((int)(mCurrentTime * GpuInstancedAnimation.TargetFrameRate) + mOffsetFrame);
 
             if (CurrentFrame >= FrameCount)
             {
@@ -94,7 +94,7 @@ public class GpuInstancedAnimationClip
         }
         else if (wrapMode == WrapMode.ClampForever)
         {
-            CurrentFrame = ((int)(mCurrentTime * GpuInstancedAnimation.TargetFrameRate) + mCurrentOffsetFrame);
+            CurrentFrame = ((int)(mCurrentTime * GpuInstancedAnimation.TargetFrameRate) + mOffsetFrame);
 
             if (CurrentFrame >= FrameCount - 1)
             {
@@ -103,7 +103,7 @@ public class GpuInstancedAnimationClip
         }
         else
         {
-            CurrentFrame = ((int)(mCurrentTime * GpuInstancedAnimation.TargetFrameRate) + mCurrentOffsetFrame) % FrameCount;
+            CurrentFrame = ((int)(mCurrentTime * GpuInstancedAnimation.TargetFrameRate) + mOffsetFrame) % FrameCount;
         }
     }
 }
