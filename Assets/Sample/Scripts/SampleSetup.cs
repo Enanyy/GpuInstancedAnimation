@@ -62,7 +62,7 @@ public class SampleSetup : MonoBehaviour
 
             int index = Random.Range(0, animation.animationClips.Count);
             var animationFrame = animation.animationClips[index];
-
+            animation.speed = Random.Range(0.1f, 3);
             animation.Play(animationFrame.Name);
         }
     }

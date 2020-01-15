@@ -11,7 +11,7 @@ public class GpuInstancedAnimation : MonoBehaviour
 
     public List<GpuInstancedAnimationClip> animationClips;
 
-    private MaterialPropertyBlock materialPropertyBlock;
+    private static MaterialPropertyBlock materialPropertyBlock;
 
     private GpuInstancedAnimationClip mCurrentAnimationClip;
 
@@ -40,15 +40,15 @@ public class GpuInstancedAnimation : MonoBehaviour
     {
         onAnimationClipEnd?.Invoke(clip);
     }
-
+    private int mLayer = 0;
+    private void Awake()
+    {
+        materialPropertyBlock  = new MaterialPropertyBlock();
+        mLayer = gameObject.layer;
+    }
     // Update is called once per frame
     void Update()
     {
-        if (materialPropertyBlock == null)
-        {
-            materialPropertyBlock = new MaterialPropertyBlock();
-        }
-
         if (mCurrentAnimationClip != null)
         {
             mCurrentAnimationClip.Update();
@@ -85,9 +85,7 @@ public class GpuInstancedAnimation : MonoBehaviour
 
         }
 
-        Matrix4x4 matrix = transform.localToWorldMatrix;
-
-        Graphics.DrawMesh(mesh, matrix, material, gameObject.layer, null, 0, materialPropertyBlock);
+        Graphics.DrawMesh(mesh, transform.localToWorldMatrix, material, mLayer, null, 0, materialPropertyBlock);
     }
 
     public void Play(string clipName, int offsetFrame = 0, int fadeFrame = 0)
