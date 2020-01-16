@@ -13,6 +13,8 @@ public class SampleSetup : MonoBehaviour
 
     private bool Controll = false;
     private bool ShowEffect = false;
+
+    private List<IUpdate> mUpdateList = new List<IUpdate>();
     // Start is called before the first frame update
     void Start()
     {
@@ -62,14 +64,19 @@ public class SampleSetup : MonoBehaviour
 
             int index = Random.Range(0, animation.animationClips.Count);
             var animationFrame = animation.animationClips[index];
-            animation.speed = Random.Range(0.1f, 3);
+            animation.speed = Controll? 1: Random.Range(0.1f, 3);
             animation.Play(animationFrame.Name);
+
+            mUpdateList.Add(animation);
         }
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        for(int i = 0, Count = mUpdateList.Count; i < Count; ++i)
+        {
+            mUpdateList[i].OnUpdate();
+        }
     }
 }

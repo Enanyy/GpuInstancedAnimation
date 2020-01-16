@@ -11,6 +11,7 @@ public class SamplePlay : MonoBehaviour
     void Start()
     {
         mAnimation = GetComponent<GpuInstancedAnimation>();
+   
     }
 
     // Update is called once per frame
@@ -24,14 +25,19 @@ public class SamplePlay : MonoBehaviour
         if(Input.GetKeyDown(KeyCode.Alpha1))
         {
             mAnimation.Play("idle", 0, fadeFrame);
+            //UnityEditor.EditorApplication.isPaused = true;
         }
         if (Input.GetKeyDown(KeyCode.Alpha2))
         {
             mAnimation.Play("run", 0, fadeFrame);
+            //UnityEditor.EditorApplication.isPaused = true;
+
         }
         if (Input.GetKeyDown(KeyCode.Alpha3))
         {
             mAnimation.Play("attack01", 0, fadeFrame);
+            //UnityEditor.EditorApplication.isPaused = true;
+
         }
     }
 }

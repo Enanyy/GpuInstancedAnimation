@@ -1,7 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-public class GpuInstancedAnimation : MonoBehaviour
+public interface IUpdate
+{
+    void OnUpdate();
+}
+public class GpuInstancedAnimation : MonoBehaviour,IUpdate
 {
     public Mesh mesh;
     public Material material;
@@ -14,10 +18,9 @@ public class GpuInstancedAnimation : MonoBehaviour
     private static MaterialPropertyBlock materialPropertyBlock;
 
     private GpuInstancedAnimationClip mCurrentAnimationClip;
+    private GpuInstancedAnimationClip mPreviousAnimationClip;
 
     public float speed = 1;
-
-    private GpuInstancedAnimationClip mPreviousAnimationClip;
 
     private int mFadeFrame = 0;
 
@@ -47,7 +50,7 @@ public class GpuInstancedAnimation : MonoBehaviour
         mLayer = gameObject.layer;
     }
     // Update is called once per frame
-    void Update()
+    public void OnUpdate()
     {
         if (mCurrentAnimationClip != null)
         {
@@ -66,6 +69,7 @@ public class GpuInstancedAnimation : MonoBehaviour
                     mPreviousAnimationClip = null;
                 }
             }
+
             float fadeStrength = 1;
 
             if (mPreviousAnimationClip != null)
