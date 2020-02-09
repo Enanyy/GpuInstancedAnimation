@@ -181,8 +181,9 @@ public class GpuInstancedAnimationTool
             var frameCount = (int)(clip.length * GpuInstancedAnimation.TargetFrameRate);
             var startFrame = currentClipFrames + 1;
             var endFrame = startFrame + frameCount - 1;
+            
 
-            animationClips.Add(new GpuInstancedAnimationClip(clip.name, startFrame, endFrame, frameCount));
+            animationClips.Add(new GpuInstancedAnimationClip(clip.name, startFrame, endFrame, frameCount,clip.isLooping? GpuInstancedAnimationClip.WrapMode.Loop: GpuInstancedAnimationClip.WrapMode.Once));
 
             currentClipFrames = endFrame;
 

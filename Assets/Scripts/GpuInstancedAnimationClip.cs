@@ -18,12 +18,13 @@ public class GpuInstancedAnimationClip
 
     public WrapMode wrapMode = WrapMode.Once;
 
-    public GpuInstancedAnimationClip(string name, int startFrame, int endFrame, int frameCount)
+    public GpuInstancedAnimationClip(string name, int startFrame, int endFrame, int frameCount,WrapMode mode = WrapMode.Once)
     {
         Name = name;
         StartFrame = startFrame;
         EndFrame = endFrame;
         FrameCount = frameCount;
+        wrapMode = mode;
     }
 
     private GpuInstancedAnimation mAnimation;

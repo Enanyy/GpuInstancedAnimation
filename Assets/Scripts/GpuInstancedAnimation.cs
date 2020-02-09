@@ -69,9 +69,7 @@ public class GpuInstancedAnimation : MonoBehaviour,IUpdate
                     mPreviousAnimationClip = null;
                 }
             }
-
             float fadeStrength = 1;
-
             if (mPreviousAnimationClip != null)
             {
                 if (mFadeFrame > 0 && mCurrentAnimationClip.CurrentFrame < mFadeFrame)
@@ -83,10 +81,8 @@ public class GpuInstancedAnimation : MonoBehaviour,IUpdate
                     mFadeFrame = 0;
                 }
             }
-
             materialPropertyBlock.SetInt("_PreviousFrame", previousFrame);
             materialPropertyBlock.SetFloat("_FadeStrength", fadeStrength);
-
         }
 
         Graphics.DrawMesh(mesh, transform.localToWorldMatrix, material, mLayer, null, 0, materialPropertyBlock);
