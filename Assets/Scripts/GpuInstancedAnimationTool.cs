@@ -71,11 +71,9 @@ public class GpuInstancedAnimationTool
     private static Texture GenerateAnimationTexture(GameObject targetObject, IEnumerable<AnimationClip> clips, SkinnedMeshRenderer smr)
     {
         var textureBoundary = GetCalculatedTextureBoundary(clips, smr.bones.Count());
-
         var texture = new Texture2D((int)textureBoundary.x, (int)textureBoundary.y, TextureFormat.RGBAHalf, false, true);
         var pixels = texture.GetPixels();
         var pixelIndex = 0;
-
         //Setup 0 to bindPoses
         foreach (var boneMatrix in smr.bones.Select((b, idx) => b.localToWorldMatrix * smr.sharedMesh.bindposes[idx]))
         {
@@ -83,7 +81,6 @@ public class GpuInstancedAnimationTool
             pixels[pixelIndex++] = new Color(boneMatrix.m10, boneMatrix.m11, boneMatrix.m12, boneMatrix.m13);
             pixels[pixelIndex++] = new Color(boneMatrix.m20, boneMatrix.m21, boneMatrix.m22, boneMatrix.m23);
         }
-
         foreach (var clip in clips)
         {
             var totalFrames = (int)(clip.length * GpuInstancedAnimation.TargetFrameRate);
@@ -99,11 +96,9 @@ public class GpuInstancedAnimationTool
                 }
             }
         }
-
         texture.SetPixels(pixels);
         texture.Apply();
         texture.filterMode = FilterMode.Point;
-
         return texture;
     }
 

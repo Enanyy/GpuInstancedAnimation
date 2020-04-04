@@ -112,37 +112,27 @@ Shader "AnimationGpuInstancing/Standard" {
 				mul(bone4Matrix, v.normal) * v.boneWeight.w;
 
 			float fadeStrength = UNITY_ACCESS_INSTANCED_PROP(_FadeStrength_arr, _FadeStrength);
-
              //fadeStrength由外部C#传入，对于所有顶点都是一样的，不存在并行运算时某个顶点先计算完成需要等待其他顶点的情况
-
             if (fadeStrength  >= 0)
             {
-                ///*
 			    currentFrame = UNITY_ACCESS_INSTANCED_PROP(_PreviousFrame_arr, _PreviousFrame);
-
 			    clampedIndex = currentFrame * _PixelCountPerFrame;
-
 			    bone1Matrix = GetMatrix(clampedIndex, v.boneIndex.x);
 			    bone2Matrix = GetMatrix(clampedIndex, v.boneIndex.y);
 			    bone3Matrix = GetMatrix(clampedIndex, v.boneIndex.z);
 			    bone4Matrix = GetMatrix(clampedIndex, v.boneIndex.w);
 
-			    float4 previousVertex =
-				    mul(bone1Matrix, v.vertex) * v.boneWeight.x +
-				    mul(bone2Matrix, v.vertex) * v.boneWeight.y +
-				    mul(bone3Matrix, v.vertex) * v.boneWeight.z +
-				    mul(bone4Matrix, v.vertex) * v.boneWeight.w;
-
-			    float4 previousNormal =
-				    mul(bone1Matrix, v.normal) * v.boneWeight.x +
-				    mul(bone2Matrix, v.normal) * v.boneWeight.y +
-				    mul(bone3Matrix, v.normal) * v.boneWeight.z +
-				    mul(bone4Matrix, v.normal) * v.boneWeight.w;
-
+			    float4 previousVertex = mul(bone1Matrix, v.vertex) * v.boneWeight.x +
+										mul(bone2Matrix, v.vertex) * v.boneWeight.y +
+										mul(bone3Matrix, v.vertex) * v.boneWeight.z +
+										mul(bone4Matrix, v.vertex) * v.boneWeight.w;
+			    float4 previousNormal = mul(bone1Matrix, v.normal) * v.boneWeight.x +
+										mul(bone2Matrix, v.normal) * v.boneWeight.y +
+										mul(bone3Matrix, v.normal) * v.boneWeight.z +
+										mul(bone4Matrix, v.normal) * v.boneWeight.w;
 
 			    v.vertex = previousVertex * (1 - fadeStrength) + currentVertex * fadeStrength;
 			    v.normal = previousNormal * ( 1 - fadeStrength) + currentNormal * fadeStrength;
-                //*/
             }
             else
             {   
