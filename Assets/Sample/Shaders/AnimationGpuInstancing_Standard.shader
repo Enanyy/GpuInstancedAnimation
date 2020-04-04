@@ -26,10 +26,6 @@ Shader "AnimationGpuInstancing/Standard" {
 		#pragma multi_compile_instancing
 		#pragma target 3.0
 
-		sampler2D _MainTex;
-		sampler2D _AnimTex;
-		float4 _AnimTex_TexelSize;
-
 		struct Input {
 			float2 uv_MainTex;
 			UNITY_VERTEX_INPUT_INSTANCE_ID
@@ -37,21 +33,20 @@ Shader "AnimationGpuInstancing/Standard" {
 
 		half _Glossiness;
 		half _Metallic;
-
+		sampler2D _MainTex;
+		sampler2D _AnimTex;
+		float4 _AnimTex_TexelSize;
 		int _PixelCountPerFrame;
 
 		UNITY_INSTANCING_BUFFER_START(Props)
-
 		UNITY_DEFINE_INSTANCED_PROP(int, _CurrentFrame)
 #define _CurrentFrame_arr Props
 		UNITY_DEFINE_INSTANCED_PROP(int, _PreviousFrame)
 #define _PreviousFrame_arr Props
 		UNITY_DEFINE_INSTANCED_PROP(float, _FadeStrength)
 #define _FadeStrength_arr Props
-
 		UNITY_DEFINE_INSTANCED_PROP(fixed4, _Color)
 #define _Color_arr Props
-
 		UNITY_INSTANCING_BUFFER_END(Props)
 		
 		float4 GetUV(int index)
