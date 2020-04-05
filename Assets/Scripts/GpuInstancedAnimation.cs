@@ -27,10 +27,13 @@ public class GpuInstancedAnimation : MonoBehaviour,IUpdate
     private GpuInstancedAnimationClip mCurrentAnimationClip;
     private GpuInstancedAnimationClip mPreviousAnimationClip;
     private GpuInstancedAnimationClip mBlendAnimationClip;
+    private GpuInstancedAnimationClip mBlendPreviousAnimationClip;
 
     public float speed = 1;
 
     private int mFadeFrame = 0;
+
+    private int mBlendFadeFrame = 0;
 
     public bool isBlending
     {
@@ -81,7 +84,7 @@ public class GpuInstancedAnimation : MonoBehaviour,IUpdate
         if (mCurrentAnimationClip != null)
         {
             mCurrentAnimationClip.Update();
-
+            int currentFrame = mCurrentAnimationClip.GetCurrentFrame();
             int previousFrame = 0;
             if(mPreviousAnimationClip != null)
             {
@@ -108,15 +111,49 @@ public class GpuInstancedAnimation : MonoBehaviour,IUpdate
             }
 
             int blendFrame = 0;
+            int blendPreviousFrame = 0;
             if (mBlendAnimationClip != null)
             {
-                mBlendAnimationClip.Update();
+                if (mBlendAnimationClip != mCurrentAnimationClip && mBlendAnimationClip != mPreviousAnimationClip)
+                {
+                    mBlendAnimationClip.Update();
+                }
                 blendFrame = mBlendAnimationClip.GetCurrentFrame();
+
+                if(mBlendPreviousAnimationClip!=null)
+                {
+                    if (mBlendPreviousAnimationClip != mCurrentAnimationClip && mBlendPreviousAnimationClip != mPreviousAnimationClip)
+                    {
+                        mBlendPreviousAnimationClip.Update();
+                    }
+                    blendPreviousFrame = mBlendPreviousAnimationClip.GetCurrentFrame();
+
+                    if (mBlendPreviousAnimationClip.CurrentFrame >= mBlendPreviousAnimationClip.EndFrame - 1)
+                    {
+                        mBlendPreviousAnimationClip = null;
+                    }
+                }
             }
-            materialPropertyBlock.SetInt("_CurrentFrame", mCurrentAnimationClip.GetCurrentFrame());
+            float blendFadeStrength = 1;
+
+            if (mBlendPreviousAnimationClip != null)
+            {
+                if (mBlendFadeFrame > 0 && mBlendPreviousAnimationClip.CurrentFrame < mBlendFadeFrame)
+                {
+                    blendFadeStrength = mBlendPreviousAnimationClip.CurrentFrame * 1f / mBlendFadeFrame;
+                }
+                else
+                {
+                    mBlendFadeFrame = 0;
+                }
+            }
+        
+            materialPropertyBlock.SetInt("_CurrentFrame", currentFrame);
             materialPropertyBlock.SetInt("_PreviousFrame", previousFrame);
             materialPropertyBlock.SetFloat("_FadeStrength", fadeStrength);
-            materialPropertyBlock.SetFloat("_BlendFrame", blendFrame);
+            materialPropertyBlock.SetInt("_BlendFrame", blendFrame);
+            materialPropertyBlock.SetInt("_BlendPreviousFrame", blendPreviousFrame);
+            materialPropertyBlock.SetFloat("_BlendFadeStrength", blendFadeStrength);
             materialPropertyBlock.SetFloat("_BlendDirection", blendDirection == BlendDirection.Top ? 1 : 0);
         }
 
@@ -138,6 +175,8 @@ public class GpuInstancedAnimation : MonoBehaviour,IUpdate
 
         mCurrentAnimationClip = animationClips.Find((x) => x.Name == clipName);
 
+        SetBlend(null);
+
         if (mCurrentAnimationClip != null)
         {
             mCurrentAnimationClip.Reset(this, offsetFrame);
@@ -145,7 +184,7 @@ public class GpuInstancedAnimation : MonoBehaviour,IUpdate
             mFadeFrame = Mathf.Clamp(fadeFrame, 0, mCurrentAnimationClip.FrameCount);
         }
     }
-    public void SetBlend(string clipName, BlendDirection direction = BlendDirection.Down)
+    public void SetBlend(string clipName, BlendDirection direction = BlendDirection.Down, int fadeFrame = 0)
     {
         if (animationClips == null)
         {
@@ -153,10 +192,29 @@ public class GpuInstancedAnimation : MonoBehaviour,IUpdate
         }
         if(string.IsNullOrEmpty(clipName))
         {
-            mBlendAnimationClip = null;
+            mBlendAnimationClip = null; 
+            mBlendPreviousAnimationClip = null;
+
+            return;
         }
         blendDirection = direction;
+        if(mBlendAnimationClip!= null)
+        {
+            mBlendPreviousAnimationClip = mBlendAnimationClip;
+        }
+        else
+        {
+            if (mCurrentAnimationClip != null)
+            {
+                mBlendPreviousAnimationClip = mCurrentAnimationClip;
+            }
+        }
+
         mBlendAnimationClip = animationClips.Find(x => x.Name == clipName);
+        if(mBlendAnimationClip!=null)
+        {
+            mBlendFadeFrame = Mathf.Clamp(fadeFrame, 0, mBlendAnimationClip.FrameCount);
+        }
     }
     public GpuInstancedAnimationBone GetBone(string boneName)
     {

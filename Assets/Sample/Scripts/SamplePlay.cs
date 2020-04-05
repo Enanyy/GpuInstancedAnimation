@@ -46,11 +46,11 @@ public class SamplePlay : MonoBehaviour
             {
                 if (mAnimation.playingAnimationClip == "attack01")
                 {
-                    mAnimation.SetBlend("run");
+                    mAnimation.SetBlend("run", BlendDirection.Down, fadeFrame);
                 }
                 else if(mAnimation.playingAnimationClip == "run")
                 {
-                    mAnimation.SetBlend("attack01", BlendDirection.Top);
+                    mAnimation.SetBlend("attack01", BlendDirection.Top, fadeFrame);
                 }
 
             }

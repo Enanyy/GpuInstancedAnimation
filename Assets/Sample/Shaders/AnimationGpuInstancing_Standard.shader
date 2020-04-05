@@ -39,28 +39,32 @@ Shader "AnimationGpuInstancing/Standard" {
 		int _PixelCountPerFrame;
 
 		UNITY_INSTANCING_BUFFER_START(Props)
-		UNITY_DEFINE_INSTANCED_PROP(int, _CurrentFrame)
+			UNITY_DEFINE_INSTANCED_PROP(int, _CurrentFrame)
 #define _CurrentFrame_arr Props
-		UNITY_DEFINE_INSTANCED_PROP(int, _PreviousFrame)
+			UNITY_DEFINE_INSTANCED_PROP(int, _PreviousFrame)
 #define _PreviousFrame_arr Props
-		UNITY_DEFINE_INSTANCED_PROP(int, _BlendFrame)
-#define _BlendFrame_arr Props
-UNITY_DEFINE_INSTANCED_PROP(float, _BlendDirection)
-#define _BlendDirection_arr Props
-		UNITY_DEFINE_INSTANCED_PROP(float, _FadeStrength)
+			UNITY_DEFINE_INSTANCED_PROP(float, _FadeStrength)
 #define _FadeStrength_arr Props
-		UNITY_DEFINE_INSTANCED_PROP(fixed4, _Color)
+			UNITY_DEFINE_INSTANCED_PROP(int, _BlendFrame)
+#define _BlendFrame_arr Props
+			UNITY_DEFINE_INSTANCED_PROP(int, _BlendPreviousFrame)
+#define _BlendPreviousFrame_arr Props
+			UNITY_DEFINE_INSTANCED_PROP(float, _BlendDirection)
+#define _BlendDirection_arr Props
+			UNITY_DEFINE_INSTANCED_PROP(float, _BlendFadeStrength)
+#define _BlendFadeStrength_arr Props
+			UNITY_DEFINE_INSTANCED_PROP(fixed4, _Color)
 #define _Color_arr Props
-		UNITY_INSTANCING_BUFFER_END(Props)
-		
-		float4 GetUV(int index)
+			UNITY_INSTANCING_BUFFER_END(Props)
+
+			float4 GetUV(int index)
 		{
 			int row = index / (int)_AnimTex_TexelSize.z;
 			int col = index % (int)_AnimTex_TexelSize.z;
 
 			return float4(col / _AnimTex_TexelSize.z, row / _AnimTex_TexelSize.w, 0, 0);
 		}
-		
+
 		float4x4 GetMatrix(int startIndex, float boneIndex)
 		{
 			int matrixIndex = startIndex + boneIndex * 3;
@@ -116,13 +120,13 @@ UNITY_DEFINE_INSTANCED_PROP(float, _BlendDirection)
 		float GetHeightWeight(appdata v)
 		{
 			float heightWeight = v.boneHeight.x * v.boneWeight.x +
-								 v.boneHeight.y * v.boneWeight.y +
-								 v.boneHeight.z * v.boneWeight.z +
-								 v.boneHeight.w * v.boneWeight.w;
+				v.boneHeight.y * v.boneWeight.y +
+				v.boneHeight.z * v.boneWeight.z +
+				v.boneHeight.w * v.boneWeight.w;
 			return saturate(heightWeight);
 		}
 		void vert(inout appdata v, out Input o)
-        {
+		{
 			UNITY_SETUP_INSTANCE_ID(v);
 			UNITY_TRANSFER_INSTANCE_ID(v, o);
 			UNITY_INITIALIZE_OUTPUT(Input, o);
@@ -131,32 +135,55 @@ UNITY_DEFINE_INSTANCED_PROP(float, _BlendDirection)
 			int blendFrame = UNITY_ACCESS_INSTANCED_PROP(_BlendFrame_arr, _BlendFrame);
 
 			VertexData current = GetVertex(currentFrame, v);
-      
+
 			float fadeStrength = UNITY_ACCESS_INSTANCED_PROP(_FadeStrength_arr, _FadeStrength);
-             //fadeStrength由外部C#传入，对于所有顶点都是一样的，不存在并行运算时某个顶点先计算完成需要等待其他顶点的情况
-            if (fadeStrength  >= 0)
-            {
-			    int previousFrame = UNITY_ACCESS_INSTANCED_PROP(_PreviousFrame_arr, _PreviousFrame);
+			//fadeStrength由外部C#传入，对于所有顶点都是一样的，不存在并行运算时某个顶点先计算完成需要等待其他顶点的情况
+			if (fadeStrength >= 0)
+			{
+				VertexData previous;
 
-				VertexData previous = GetVertex(previousFrame, v);
+				if (fadeStrength < 1)
+				{
+					int previousFrame = UNITY_ACCESS_INSTANCED_PROP(_PreviousFrame_arr, _PreviousFrame);
 
-				current.vertex = previous.vertex * (1 - fadeStrength) + current.vertex * fadeStrength;
-				current.normal = previous.normal * ( 1 - fadeStrength) + current.normal * fadeStrength;
+					previous = GetVertex(previousFrame, v);
 
+					current.vertex = previous.vertex * (1 - fadeStrength) + current.vertex * fadeStrength;
+					current.normal = previous.normal * (1 - fadeStrength) + current.normal * fadeStrength;
+				}
 				if (blendFrame > 0)
 				{
 					VertexData blend = GetVertex(blendFrame, v);
-					blend.vertex = previous.vertex * (1 - fadeStrength) + blend.vertex * fadeStrength;
-					blend.normal = previous.normal * (1 - fadeStrength) + blend.normal * fadeStrength;
+
+					if (fadeStrength < 1)
+					{
+						blend.vertex = previous.vertex * (1 - fadeStrength) + blend.vertex * fadeStrength;
+						blend.normal = previous.normal * (1 - fadeStrength) + blend.normal * fadeStrength;
+					}
+					else
+					{
+						float blendFadeStrength = UNITY_ACCESS_INSTANCED_PROP(_BlendFadeStrength_arr, _BlendFadeStrength);
+
+						if (blendFadeStrength >= 0 && blendFadeStrength < 1)
+						{
+							int blendPreviousFrame = UNITY_ACCESS_INSTANCED_PROP(_BlendPreviousFrame_arr, _BlendPreviousFrame);
+
+							VertexData blendPrevious = GetVertex(blendPreviousFrame, v);
+
+							blend.vertex = blendPrevious.vertex * (1 - blendFadeStrength) + blend.vertex * blendFadeStrength;
+							blend.normal = blendPrevious.normal * (1 - blendFadeStrength) + blend.normal * blendFadeStrength;
+						}
+					}
 
 					float heightWeight = GetHeightWeight(v);
-					
-					float blendDirection = UNITY_ACCESS_INSTANCED_PROP(_BlendDirection_arr, _BlendDirection);
 
-					current.vertex = blend.vertex * abs(1 - heightWeight - blendDirection) + current.vertex * abs(heightWeight - blendDirection);
-					current.normal = blend.vertex * abs(1 - heightWeight - blendDirection) + current.normal * abs(heightWeight - blendDirection);
+					float blendDirection = UNITY_ACCESS_INSTANCED_PROP(_BlendDirection_arr, _BlendDirection);
+					float factor = abs(1 - heightWeight - blendDirection);
+
+					current.vertex = blend.vertex * factor + current.vertex * (1 - factor);
+					current.normal = blend.vertex * factor + current.normal * (1 - factor);
 				}
-            }
+			}
 			else
 			{
 				if (blendFrame > 0)
@@ -166,16 +193,17 @@ UNITY_DEFINE_INSTANCED_PROP(float, _BlendDirection)
 
 					float blendDirection = UNITY_ACCESS_INSTANCED_PROP(_BlendDirection_arr, _BlendDirection);
 
-					current.vertex = blend.vertex * abs(1 - heightWeight - blendDirection) + current.vertex * abs(heightWeight - blendDirection);
-					current.normal = blend.vertex * abs(1 - heightWeight - blendDirection) + current.normal * abs(heightWeight - blendDirection);
+					float factor = abs(1 - heightWeight - blendDirection);
+
+					current.vertex = blend.vertex * factor + current.vertex * (1 - factor);
+					current.normal = blend.vertex * factor + current.normal * (1 - factor);
 				}
 			}
-			
-		
+
+
 			v.vertex = current.vertex;
 			v.normal = current.normal;
 		}
-
 		
 
 		void surf(Input IN, inout SurfaceOutputStandard o) {

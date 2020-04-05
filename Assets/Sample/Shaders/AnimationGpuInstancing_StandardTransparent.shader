@@ -41,17 +41,21 @@ Shader "AnimationGpuInstancing/StandardTransparent" {
 #define _CurrentFrame_arr Props
 			UNITY_DEFINE_INSTANCED_PROP(int, _PreviousFrame)
 #define _PreviousFrame_arr Props
-			UNITY_DEFINE_INSTANCED_PROP(int, _BlendFrame)
-#define _BlendFrame_arr Props
-			UNITY_DEFINE_INSTANCED_PROP(float, _BlendDirection)
-#define _BlendDirection_arr Props
 			UNITY_DEFINE_INSTANCED_PROP(float, _FadeStrength)
 #define _FadeStrength_arr Props
+			UNITY_DEFINE_INSTANCED_PROP(int, _BlendFrame)
+#define _BlendFrame_arr Props
+			UNITY_DEFINE_INSTANCED_PROP(int, _BlendPreviousFrame)
+#define _BlendPreviousFrame_arr Props
+			UNITY_DEFINE_INSTANCED_PROP(float, _BlendDirection)
+#define _BlendDirection_arr Props
+			UNITY_DEFINE_INSTANCED_PROP(float, _BlendFadeStrength)
+#define _BlendFadeStrength_arr Props
 			UNITY_DEFINE_INSTANCED_PROP(fixed4, _Color)
 #define _Color_arr Props
 			UNITY_INSTANCING_BUFFER_END(Props)
 
-			float4 GetUV(int index)
+		float4 GetUV(int index)
 		{
 			int row = index / (int)_AnimTex_TexelSize.z;
 			int col = index % (int)_AnimTex_TexelSize.z;
@@ -134,25 +138,48 @@ Shader "AnimationGpuInstancing/StandardTransparent" {
 			//fadeStrength由外部C#传入，对于所有顶点都是一样的，不存在并行运算时某个顶点先计算完成需要等待其他顶点的情况
 			if (fadeStrength >= 0)
 			{
-				int previousFrame = UNITY_ACCESS_INSTANCED_PROP(_PreviousFrame_arr, _PreviousFrame);
+				VertexData previous;
 
-				VertexData previous = GetVertex(previousFrame, v);
+				if (fadeStrength < 1)
+				{
+					int previousFrame = UNITY_ACCESS_INSTANCED_PROP(_PreviousFrame_arr, _PreviousFrame);
 
-				current.vertex = previous.vertex * (1 - fadeStrength) + current.vertex * fadeStrength;
-				current.normal = previous.normal * (1 - fadeStrength) + current.normal * fadeStrength;
+					previous = GetVertex(previousFrame, v);
 
+					current.vertex = previous.vertex * (1 - fadeStrength) + current.vertex * fadeStrength;
+					current.normal = previous.normal * (1 - fadeStrength) + current.normal * fadeStrength;
+				}
 				if (blendFrame > 0)
 				{
 					VertexData blend = GetVertex(blendFrame, v);
-					blend.vertex = previous.vertex * (1 - fadeStrength) + blend.vertex * fadeStrength;
-					blend.normal = previous.normal * (1 - fadeStrength) + blend.normal * fadeStrength;
+
+					if (fadeStrength < 1)
+					{
+						blend.vertex = previous.vertex * (1 - fadeStrength) + blend.vertex * fadeStrength;
+						blend.normal = previous.normal * (1 - fadeStrength) + blend.normal * fadeStrength;
+					}
+					else
+					{
+						float blendFadeStrength = UNITY_ACCESS_INSTANCED_PROP(_BlendFadeStrength_arr, _BlendFadeStrength);
+
+						if (blendFadeStrength >= 0 && blendFadeStrength < 1)
+						{
+							int blendPreviousFrame = UNITY_ACCESS_INSTANCED_PROP(_BlendPreviousFrame_arr, _BlendPreviousFrame);
+
+							VertexData blendPrevious = GetVertex(blendPreviousFrame, v);
+
+							blend.vertex = blendPrevious.vertex * (1 - blendFadeStrength) + blend.vertex * blendFadeStrength;
+							blend.normal = blendPrevious.normal * (1 - blendFadeStrength) + blend.normal * blendFadeStrength;
+						}
+					}
 
 					float heightWeight = GetHeightWeight(v);
 
 					float blendDirection = UNITY_ACCESS_INSTANCED_PROP(_BlendDirection_arr, _BlendDirection);
+					float factor = abs(1 - heightWeight - blendDirection);
 
-					current.vertex = blend.vertex * abs(1 - heightWeight - blendDirection) + current.vertex * abs(heightWeight - blendDirection);
-					current.normal = blend.vertex * abs(1 - heightWeight - blendDirection) + current.normal * abs(heightWeight - blendDirection);
+					current.vertex = blend.vertex * factor + current.vertex * (1- factor);
+					current.normal = blend.vertex * factor + current.normal * (1- factor);
 				}
 			}
 			else
@@ -164,8 +191,10 @@ Shader "AnimationGpuInstancing/StandardTransparent" {
 
 					float blendDirection = UNITY_ACCESS_INSTANCED_PROP(_BlendDirection_arr, _BlendDirection);
 
-					current.vertex = blend.vertex * abs(1 - heightWeight - blendDirection) + current.vertex * abs(heightWeight - blendDirection);
-					current.normal = blend.vertex * abs(1 - heightWeight - blendDirection) + current.normal * abs(heightWeight - blendDirection);
+					float factor = abs(1 - heightWeight - blendDirection);
+
+					current.vertex = blend.vertex * factor + current.vertex * (1 - factor);
+					current.normal = blend.vertex * factor + current.normal * (1 - factor);
 				}
 			}
 
