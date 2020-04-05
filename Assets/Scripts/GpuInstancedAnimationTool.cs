@@ -16,7 +16,7 @@ public class GpuInstancedAnimationTool
             EditorUtility.DisplayDialog("Warning", "Selected object type is not gameobject.", "OK");
             return;
         }
-
+        var export = targetObject.GetComponent<GpuInstancedAnimationBoneExport>();
         var skinnedMeshRenderers = targetObject.GetComponentsInChildren<SkinnedMeshRenderer>();
         if (!skinnedMeshRenderers.Any() || skinnedMeshRenderers.Count() != 1)
         {
@@ -24,25 +24,23 @@ public class GpuInstancedAnimationTool
             return;
         }
 
-        var animator = targetObject.GetComponentInChildren<Animator>();
-        if (animator == null)
-        {
-            EditorUtility.DisplayDialog("Warning", "Selected object does not have Animator.", "OK");
-            return;
-        }
-
         string prefabName = targetObject.name;
 
         var selectionPath = Path.GetDirectoryName(AssetDatabase.GetAssetPath(targetObject));
         var skinnedMeshRenderer = skinnedMeshRenderers.First();
-        var clips = animator.runtimeAnimatorController.animationClips;
+        var clips = GetAnimationClips(targetObject);
+        if(clips == null)
+        {
+            EditorUtility.DisplayDialog("Warning", "Selected object has no AnimationClip.", "OK");
+            return;
+        }
 
         Directory.CreateDirectory(Path.Combine(selectionPath, prefabName));
 
         var animationTexture = GenerateAnimationTexture(targetObject, clips, skinnedMeshRenderer);
         AssetDatabase.CreateAsset(animationTexture, string.Format("{0}/{1}/{2}_AnimationTexture.asset", selectionPath, prefabName,prefabName));
 
-        var mesh = GenerateUvBoneWeightedMesh(skinnedMeshRenderer);
+        var mesh = GenerateUvBoneWeightedMesh(skinnedMeshRenderer, export);
         AssetDatabase.CreateAsset(mesh, string.Format("{0}/{1}/{2}_Mesh.asset", selectionPath, prefabName,prefabName));
 
         var material = GenerateMaterial( skinnedMeshRenderer, animationTexture,skinnedMeshRenderer.bones.Length);
@@ -54,7 +52,42 @@ public class GpuInstancedAnimationTool
         Object.DestroyImmediate(go);
     }
 
-    private static Mesh GenerateUvBoneWeightedMesh(SkinnedMeshRenderer smr)
+    private static IEnumerable<AnimationClip> GetAnimationClips(GameObject targetObject)
+    {
+        var animator = targetObject.GetComponent<Animator>();
+        if(animator == null)
+        {
+            animator = targetObject.GetComponentInChildren<Animator>();
+        }
+        if(animator )
+        {
+            if(animator.runtimeAnimatorController)
+            {
+                return animator.runtimeAnimatorController.animationClips;
+            }
+            else
+            {   
+                return null;
+            }
+        }
+        var animation = targetObject.GetComponent<Animation>();
+        if(animation== null)
+        {
+            animation = targetObject.GetComponentInChildren<Animation>();
+        }
+        if(animation)
+        {
+            List<AnimationClip> clips = new List<AnimationClip>();
+            foreach(AnimationState state in animation)
+            {
+                clips.Add(state.clip);
+            }
+            return clips;
+        }
+        return null;
+    }
+
+    private static Mesh GenerateUvBoneWeightedMesh(SkinnedMeshRenderer smr,GpuInstancedAnimationBoneExport export)
     {
         var mesh = Object.Instantiate(smr.sharedMesh);
 
@@ -64,6 +97,12 @@ public class GpuInstancedAnimationTool
 
         mesh.SetUVs(2, boneIndexes);
         mesh.SetUVs(3, boneWeights);
+        if(export!=null)
+        {
+            var boneHeights = boneSets.Select(x => new Vector4(export.GetBoneHeightWeight( x.boneIndex0), export.GetBoneHeightWeight(x.boneIndex1), export.GetBoneHeightWeight(x.boneIndex2), export.GetBoneHeightWeight(x.boneIndex3))).ToList();
+            mesh.SetUVs(4, boneHeights);
+
+        }
 
         return mesh;
     }

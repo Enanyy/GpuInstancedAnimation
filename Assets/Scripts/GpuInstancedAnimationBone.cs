@@ -13,4 +13,11 @@ public class GpuInstancedAnimationBoneFrame
     public Quaternion rotation;
 }
 
+[Serializable]
+public class GpuInstancedAnimationBoneHeight
+{
+    public Transform bone;
+    public int index;
+    public float height;
+}
 

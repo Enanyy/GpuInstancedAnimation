@@ -39,5 +39,26 @@ public class SamplePlay : MonoBehaviour
             //UnityEditor.EditorApplication.isPaused = true;
 
         }
+
+        if (Input.GetKeyDown(KeyCode.B))
+        {
+            if (mAnimation.isBlending == false)
+            {
+                if (mAnimation.playingAnimationClip == "attack01")
+                {
+                    mAnimation.SetBlend("run");
+                }
+                else if(mAnimation.playingAnimationClip == "run")
+                {
+                    mAnimation.SetBlend("attack01", BlendDirection.Top);
+                }
+
+            }
+            else
+            {
+                mAnimation.SetBlend(null);
+            }
+            //UnityEditor.EditorApplication.isPaused = true;
+        }
     }
 }

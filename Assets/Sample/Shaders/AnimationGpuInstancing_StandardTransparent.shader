@@ -37,24 +37,28 @@ Shader "AnimationGpuInstancing/StandardTransparent" {
 		int _PixelCountPerFrame;
 
 		UNITY_INSTANCING_BUFFER_START(Props)
-		UNITY_DEFINE_INSTANCED_PROP(int, _CurrentFrame)
+			UNITY_DEFINE_INSTANCED_PROP(int, _CurrentFrame)
 #define _CurrentFrame_arr Props
-		UNITY_DEFINE_INSTANCED_PROP(int, _PreviousFrame)
+			UNITY_DEFINE_INSTANCED_PROP(int, _PreviousFrame)
 #define _PreviousFrame_arr Props
-		UNITY_DEFINE_INSTANCED_PROP(float, _FadeStrength)
+			UNITY_DEFINE_INSTANCED_PROP(int, _BlendFrame)
+#define _BlendFrame_arr Props
+			UNITY_DEFINE_INSTANCED_PROP(float, _BlendDirection)
+#define _BlendDirection_arr Props
+			UNITY_DEFINE_INSTANCED_PROP(float, _FadeStrength)
 #define _FadeStrength_arr Props
-		UNITY_DEFINE_INSTANCED_PROP(fixed4, _Color)
+			UNITY_DEFINE_INSTANCED_PROP(fixed4, _Color)
 #define _Color_arr Props
-		UNITY_INSTANCING_BUFFER_END(Props)
-		
-		float4 GetUV(int index)
+			UNITY_INSTANCING_BUFFER_END(Props)
+
+			float4 GetUV(int index)
 		{
 			int row = index / (int)_AnimTex_TexelSize.z;
 			int col = index % (int)_AnimTex_TexelSize.z;
 
 			return float4(col / _AnimTex_TexelSize.z, row / _AnimTex_TexelSize.w, 0, 0);
 		}
-		
+
 		float4x4 GetMatrix(int startIndex, float boneIndex)
 		{
 			int matrixIndex = startIndex + boneIndex * 3;
@@ -74,16 +78,17 @@ Shader "AnimationGpuInstancing/StandardTransparent" {
 			float4 texcoord1 : TEXCOORD1;
 			half4 boneIndex : TEXCOORD2;
 			fixed4 boneWeight : TEXCOORD3;
+			fixed4 boneHeight : TEXCOORD4;
 			UNITY_VERTEX_INPUT_INSTANCE_ID
 		};
-
-		void vert(inout appdata v, out Input o) {
-			UNITY_SETUP_INSTANCE_ID(v);
-			UNITY_TRANSFER_INSTANCE_ID(v, o);
-			UNITY_INITIALIZE_OUTPUT(Input, o);
-
-			int currentFrame = UNITY_ACCESS_INSTANCED_PROP(_CurrentFrame_arr, _CurrentFrame);
-
+		struct VertexData
+		{
+			float4 vertex;
+			float4 normal;
+		};
+		VertexData GetVertex(int currentFrame, appdata v)
+		{
+			VertexData o;
 			int clampedIndex = currentFrame * _PixelCountPerFrame;
 
 			float4x4 bone1Matrix = GetMatrix(clampedIndex, v.boneIndex.x);
@@ -91,56 +96,82 @@ Shader "AnimationGpuInstancing/StandardTransparent" {
 			float4x4 bone3Matrix = GetMatrix(clampedIndex, v.boneIndex.z);
 			float4x4 bone4Matrix = GetMatrix(clampedIndex, v.boneIndex.w);
 
-			float4 currentVertex =
+			o.vertex =
 				mul(bone1Matrix, v.vertex) * v.boneWeight.x +
 				mul(bone2Matrix, v.vertex) * v.boneWeight.y +
 				mul(bone3Matrix, v.vertex) * v.boneWeight.z +
 				mul(bone4Matrix, v.vertex) * v.boneWeight.w;
 
-			float4 currentNormal =
+			o.normal =
 				mul(bone1Matrix, v.normal) * v.boneWeight.x +
 				mul(bone2Matrix, v.normal) * v.boneWeight.y +
 				mul(bone3Matrix, v.normal) * v.boneWeight.z +
 				mul(bone4Matrix, v.normal) * v.boneWeight.w;
 
+
+			return o;
+		}
+		float GetHeightWeight(appdata v)
+		{
+			float heightWeight = v.boneHeight.x * v.boneWeight.x +
+				v.boneHeight.y * v.boneWeight.y +
+				v.boneHeight.z * v.boneWeight.z +
+				v.boneHeight.w * v.boneWeight.w;
+			return saturate(heightWeight);
+		}
+		void vert(inout appdata v, out Input o)
+		{
+			UNITY_SETUP_INSTANCE_ID(v);
+			UNITY_TRANSFER_INSTANCE_ID(v, o);
+			UNITY_INITIALIZE_OUTPUT(Input, o);
+
+			int currentFrame = UNITY_ACCESS_INSTANCED_PROP(_CurrentFrame_arr, _CurrentFrame);
+			int blendFrame = UNITY_ACCESS_INSTANCED_PROP(_BlendFrame_arr, _BlendFrame);
+
+			VertexData current = GetVertex(currentFrame, v);
+
 			float fadeStrength = UNITY_ACCESS_INSTANCED_PROP(_FadeStrength_arr, _FadeStrength);
-
 			//fadeStrength由外部C#传入，对于所有顶点都是一样的，不存在并行运算时某个顶点先计算完成需要等待其他顶点的情况
-
 			if (fadeStrength >= 0)
 			{
-				///*
-				currentFrame = UNITY_ACCESS_INSTANCED_PROP(_PreviousFrame_arr, _PreviousFrame);
+				int previousFrame = UNITY_ACCESS_INSTANCED_PROP(_PreviousFrame_arr, _PreviousFrame);
 
-				clampedIndex = currentFrame * _PixelCountPerFrame;
+				VertexData previous = GetVertex(previousFrame, v);
 
-				bone1Matrix = GetMatrix(clampedIndex, v.boneIndex.x);
-				bone2Matrix = GetMatrix(clampedIndex, v.boneIndex.y);
-				bone3Matrix = GetMatrix(clampedIndex, v.boneIndex.z);
-				bone4Matrix = GetMatrix(clampedIndex, v.boneIndex.w);
+				current.vertex = previous.vertex * (1 - fadeStrength) + current.vertex * fadeStrength;
+				current.normal = previous.normal * (1 - fadeStrength) + current.normal * fadeStrength;
 
-				float4 previousVertex =
-					mul(bone1Matrix, v.vertex) * v.boneWeight.x +
-					mul(bone2Matrix, v.vertex) * v.boneWeight.y +
-					mul(bone3Matrix, v.vertex) * v.boneWeight.z +
-					mul(bone4Matrix, v.vertex) * v.boneWeight.w;
+				if (blendFrame > 0)
+				{
+					VertexData blend = GetVertex(blendFrame, v);
+					blend.vertex = previous.vertex * (1 - fadeStrength) + blend.vertex * fadeStrength;
+					blend.normal = previous.normal * (1 - fadeStrength) + blend.normal * fadeStrength;
 
-				float4 previousNormal =
-					mul(bone1Matrix, v.normal) * v.boneWeight.x +
-					mul(bone2Matrix, v.normal) * v.boneWeight.y +
-					mul(bone3Matrix, v.normal) * v.boneWeight.z +
-					mul(bone4Matrix, v.normal) * v.boneWeight.w;
+					float heightWeight = GetHeightWeight(v);
 
+					float blendDirection = UNITY_ACCESS_INSTANCED_PROP(_BlendDirection_arr, _BlendDirection);
 
-				v.vertex = previousVertex * (1 - fadeStrength) + currentVertex * fadeStrength;
-				v.normal = previousNormal * (1 - fadeStrength) + currentNormal * fadeStrength;
-				//*/
+					current.vertex = blend.vertex * abs(1 - heightWeight - blendDirection) + current.vertex * abs(heightWeight - blendDirection);
+					current.normal = blend.vertex * abs(1 - heightWeight - blendDirection) + current.normal * abs(heightWeight - blendDirection);
+				}
 			}
 			else
 			{
-				v.vertex = currentVertex;
-				v.normal = currentNormal;
-			}		
+				if (blendFrame > 0)
+				{
+					VertexData blend = GetVertex(blendFrame, v);
+					float heightWeight = GetHeightWeight(v);
+
+					float blendDirection = UNITY_ACCESS_INSTANCED_PROP(_BlendDirection_arr, _BlendDirection);
+
+					current.vertex = blend.vertex * abs(1 - heightWeight - blendDirection) + current.vertex * abs(heightWeight - blendDirection);
+					current.normal = blend.vertex * abs(1 - heightWeight - blendDirection) + current.normal * abs(heightWeight - blendDirection);
+				}
+			}
+
+
+			v.vertex = current.vertex;
+			v.normal = current.normal;
 		}
 
 		void surf(Input IN, inout SurfaceOutputStandard o) {
