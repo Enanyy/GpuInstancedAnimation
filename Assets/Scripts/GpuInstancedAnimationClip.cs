@@ -107,4 +107,11 @@ public class GpuInstancedAnimationClip
             CurrentFrame = ((int)(mCurrentTime * GpuInstancedAnimation.TargetFrameRate) + mOffsetFrame) % FrameCount;
         }
     }
+
+    public GpuInstancedAnimationClip Clone()
+    {
+        GpuInstancedAnimationClip clip = new GpuInstancedAnimationClip(Name, StartFrame, EndFrame, FrameCount, wrapMode);
+        clip.Reset(null, 0);
+        return clip;
+    }
 }

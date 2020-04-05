@@ -120,7 +120,16 @@ public class GpuInstancedAnimation : MonoBehaviour,IUpdate
                 }
                 blendFrame = mBlendAnimationClip.GetCurrentFrame();
 
-                if(mBlendPreviousAnimationClip!=null)
+                if (mBlendAnimationClip.wrapMode == GpuInstancedAnimationClip.WrapMode.Once)
+                {
+                    if (mBlendAnimationClip.CurrentFrame >= mBlendAnimationClip.FrameCount - 1)
+                    {
+                        mBlendAnimationClip = null;
+                        mBlendPreviousAnimationClip = null;
+                    }
+                }
+
+                if(mBlendPreviousAnimationClip !=null)
                 {
                     if (mBlendPreviousAnimationClip != mCurrentAnimationClip && mBlendPreviousAnimationClip != mPreviousAnimationClip)
                     {
@@ -175,7 +184,7 @@ public class GpuInstancedAnimation : MonoBehaviour,IUpdate
 
         mCurrentAnimationClip = animationClips.Find((x) => x.Name == clipName);
 
-        SetBlend(null);
+        PlayBlend(null);
 
         if (mCurrentAnimationClip != null)
         {
@@ -184,7 +193,7 @@ public class GpuInstancedAnimation : MonoBehaviour,IUpdate
             mFadeFrame = Mathf.Clamp(fadeFrame, 0, mCurrentAnimationClip.FrameCount);
         }
     }
-    public void SetBlend(string clipName, BlendDirection direction = BlendDirection.Down, int fadeFrame = 0)
+    public void PlayBlend(string clipName, BlendDirection direction = BlendDirection.Down, int fadeFrame = 0)
     {
         if (animationClips == null)
         {
@@ -213,6 +222,8 @@ public class GpuInstancedAnimation : MonoBehaviour,IUpdate
         mBlendAnimationClip = animationClips.Find(x => x.Name == clipName);
         if(mBlendAnimationClip!=null)
         {
+            mBlendAnimationClip.Reset(this, 0);
+
             mBlendFadeFrame = Mathf.Clamp(fadeFrame, 0, mBlendAnimationClip.FrameCount);
         }
     }
