@@ -88,6 +88,23 @@ public class GpuInstancedAnimation : MonoBehaviour,IUpdate
     {
         if (mCurrentAnimationClip != null)
         {
+            if (mCurrentAnimationClip.wrapMode == GpuInstancedAnimationClip.WrapMode.Once)
+            {
+                if (mCurrentAnimationClip.CurrentFrame >= mCurrentAnimationClip.FrameCount)
+                {
+                    if (mBlendAnimationClip != null)
+                    {
+                        Play(mBlendAnimationClip.Name, mBlendAnimationClip.CurrentFrame , 0);
+                        mPreviousAnimationClip = null;
+                        //Play(mBlendAnimationClip.Name, 0, 0);
+                    }
+                    else
+                    {
+                        Play(defaultAnimationClip, 0, mFadeFrame);
+                    }
+                }
+            }
+
             mCurrentAnimationClip.Update();
             int currentFrame = mCurrentAnimationClip.RealFrame;
             int previousFrame = 0;
@@ -99,21 +116,7 @@ public class GpuInstancedAnimation : MonoBehaviour,IUpdate
 
             }
 
-            if (mCurrentAnimationClip.wrapMode == GpuInstancedAnimationClip.WrapMode.Once)
-            {
-                if(mCurrentAnimationClip.CurrentFrame >= mCurrentAnimationClip.FrameCount)
-                {
-                    if(mBlendAnimationClip!=null)
-                    {
-                        Play(mBlendAnimationClip.Name, mBlendAnimationClip.CurrentFrame, mFadeFrame);
-                    }
-                    else
-                    {
-                        Play(defaultAnimationClip, 0, mFadeFrame);
-                    }
-                }
-            }
-
+           
             float fadeStrength = 1;
             if (mCurrentAnimationClip != null  && mFadeFrame > 0)
             {
