@@ -47,8 +47,6 @@ Shader "AnimationGpuInstancing/Standard" {
 #define _FadeStrength_arr Props
 			UNITY_DEFINE_INSTANCED_PROP(int, _BlendFrame)
 #define _BlendFrame_arr Props
-			UNITY_DEFINE_INSTANCED_PROP(int, _BlendPreviousFrame)
-#define _BlendPreviousFrame_arr Props
 			UNITY_DEFINE_INSTANCED_PROP(float, _BlendDirection)
 #define _BlendDirection_arr Props
 			UNITY_DEFINE_INSTANCED_PROP(float, _BlendFadeStrength)
@@ -166,12 +164,8 @@ Shader "AnimationGpuInstancing/Standard" {
 
 						if (blendFadeStrength >= 0 && blendFadeStrength < 1)
 						{
-							int blendPreviousFrame = UNITY_ACCESS_INSTANCED_PROP(_BlendPreviousFrame_arr, _BlendPreviousFrame);
-
-							VertexData blendPrevious = GetVertex(blendPreviousFrame, v);
-
-							blend.vertex = blendPrevious.vertex * (1 - blendFadeStrength) + blend.vertex * blendFadeStrength;
-							blend.normal = blendPrevious.normal * (1 - blendFadeStrength) + blend.normal * blendFadeStrength;
+							blend.vertex = current.vertex * (1 - blendFadeStrength) + blend.vertex * blendFadeStrength;
+							blend.normal = current.normal * (1 - blendFadeStrength) + blend.normal * blendFadeStrength;
 						}
 					}
 

@@ -35,6 +35,7 @@ Shader "AnimationGpuInstancing/StandardTransparent" {
 		sampler2D _AnimTex;
 		float4 _AnimTex_TexelSize;
 		int _PixelCountPerFrame;
+
 		UNITY_INSTANCING_BUFFER_START(Props)
 			UNITY_DEFINE_INSTANCED_PROP(int, _CurrentFrame)
 #define _CurrentFrame_arr Props
@@ -44,8 +45,6 @@ Shader "AnimationGpuInstancing/StandardTransparent" {
 #define _FadeStrength_arr Props
 			UNITY_DEFINE_INSTANCED_PROP(int, _BlendFrame)
 #define _BlendFrame_arr Props
-			UNITY_DEFINE_INSTANCED_PROP(int, _BlendPreviousFrame)
-#define _BlendPreviousFrame_arr Props
 			UNITY_DEFINE_INSTANCED_PROP(float, _BlendDirection)
 #define _BlendDirection_arr Props
 			UNITY_DEFINE_INSTANCED_PROP(float, _BlendFadeStrength)
@@ -163,12 +162,8 @@ Shader "AnimationGpuInstancing/StandardTransparent" {
 
 						if (blendFadeStrength >= 0 && blendFadeStrength < 1)
 						{
-							int blendPreviousFrame = UNITY_ACCESS_INSTANCED_PROP(_BlendPreviousFrame_arr, _BlendPreviousFrame);
-
-							VertexData blendPrevious = GetVertex(blendPreviousFrame, v);
-
-							blend.vertex = blendPrevious.vertex * (1 - blendFadeStrength) + blend.vertex * blendFadeStrength;
-							blend.normal = blendPrevious.normal * (1 - blendFadeStrength) + blend.normal * blendFadeStrength;
+							blend.vertex = current.vertex * (1 - blendFadeStrength) + blend.vertex * blendFadeStrength;
+							blend.normal = current.normal * (1 - blendFadeStrength) + blend.normal * blendFadeStrength;
 						}
 					}
 
@@ -185,8 +180,6 @@ Shader "AnimationGpuInstancing/StandardTransparent" {
 			v.vertex = current.vertex;
 			v.normal = current.normal;
 		}
-
-
 
 		void surf(Input IN, inout SurfaceOutputStandard o) {
 			fixed4 c = tex2D(_MainTex, IN.uv_MainTex) * UNITY_ACCESS_INSTANCED_PROP(_Color_arr, _Color);
