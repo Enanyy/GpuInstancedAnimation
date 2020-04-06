@@ -84,7 +84,7 @@ Shader "AnimationGpuInstancing/Standard" {
 			float4 texcoord1 : TEXCOORD1;
 			half4 boneIndex : TEXCOORD2;
 			fixed4 boneWeight : TEXCOORD3;
-			fixed4 boneHeight : TEXCOORD4;
+			fixed4 blendWeight : TEXCOORD4;
 			UNITY_VERTEX_INPUT_INSTANCE_ID
 		};
 		struct VertexData
@@ -117,13 +117,13 @@ Shader "AnimationGpuInstancing/Standard" {
 
 			return o;
 		}
-		float GetHeightWeight(appdata v)
+		float GetBlendWeight(appdata v)
 		{
-			float heightWeight = v.boneHeight.x * v.boneWeight.x +
-				v.boneHeight.y * v.boneWeight.y +
-				v.boneHeight.z * v.boneWeight.z +
-				v.boneHeight.w * v.boneWeight.w;
-			return saturate(heightWeight);
+			float blendWeight = v.blendWeight.x * v.boneWeight.x +
+				v.blendWeight.y * v.boneWeight.y +
+				v.blendWeight.z * v.boneWeight.z +
+				v.blendWeight.w * v.boneWeight.w;
+			return saturate(blendWeight);
 		}
 		void vert(inout appdata v, out Input o)
 		{
@@ -175,32 +175,16 @@ Shader "AnimationGpuInstancing/Standard" {
 						}
 					}
 
-					float heightWeight = GetHeightWeight(v);
+					float blendWeight = GetBlendWeight(v);
 
 					float blendDirection = UNITY_ACCESS_INSTANCED_PROP(_BlendDirection_arr, _BlendDirection);
-					float factor = abs(1 - heightWeight - blendDirection);
+					float factor = abs(1 - blendWeight - blendDirection);
 
 					current.vertex = blend.vertex * factor + current.vertex * (1 - factor);
 					current.normal = blend.vertex * factor + current.normal * (1 - factor);
 				}
 			}
-			else
-			{
-				if (blendFrame > 0)
-				{
-					VertexData blend = GetVertex(blendFrame, v);
-					float heightWeight = GetHeightWeight(v);
-
-					float blendDirection = UNITY_ACCESS_INSTANCED_PROP(_BlendDirection_arr, _BlendDirection);
-
-					float factor = abs(1 - heightWeight - blendDirection);
-
-					current.vertex = blend.vertex * factor + current.vertex * (1 - factor);
-					current.normal = blend.vertex * factor + current.normal * (1 - factor);
-				}
-			}
-
-
+			
 			v.vertex = current.vertex;
 			v.normal = current.normal;
 		}

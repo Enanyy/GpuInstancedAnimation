@@ -58,9 +58,12 @@ public class GpuInstancedAnimationClip
         }
     }
 
-    public int GetCurrentFrame()
+    public int RealFrame
     {
-        return StartFrame + CurrentFrame ;
+        get
+        {
+            return StartFrame + CurrentFrame;
+        }
     }
 
     public void Reset(GpuInstancedAnimation animation, int offsetFrame)
@@ -90,7 +93,7 @@ public class GpuInstancedAnimationClip
 
             if (CurrentFrame >= FrameCount)
             {
-                CurrentFrame = 0;//重置到第0帧
+                CurrentFrame = FrameCount;//固定在最后一帧
             }
         }
         else if (wrapMode == WrapMode.ClampForever)
