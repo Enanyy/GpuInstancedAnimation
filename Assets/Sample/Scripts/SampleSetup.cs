@@ -46,7 +46,7 @@ public class SampleSetup : MonoBehaviour
             GameObject prefab = Prefabs[Random.Range(0, Prefabs.Count)];
 
             GameObject go = Instantiate(prefab) as GameObject;
-            go.transform.position = new Vector3(v.x, 0, v.y);
+            go.transform.position = Count == 1?new Vector3(0,5,-10): new Vector3(v.x, 0, v.y);
             go.SetActive(true);
 
             if(Controll)
