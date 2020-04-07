@@ -1,10 +1,29 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class SampleSetup : MonoBehaviour
 {
-    public SampleUI UIController;
+    [SerializeField]
+    InputField ObjectCountinputField;
+    [SerializeField]
+    Button InstantiateButton;
+    [SerializeField]
+    Toggle ShowEffectToggle;
+    [SerializeField]
+    Toggle ControllToggle;
+    [SerializeField]
+    Button IdleButton;
+    [SerializeField]
+    Button RunButton;
+    [SerializeField]
+    Button AttackButton;
+    [SerializeField]
+    Button DieButton;
+    [SerializeField]
+    Button BlendButton;
+
     public List<GameObject> Prefabs = new List<GameObject>();
 
     private int Count = 0;
@@ -15,28 +34,86 @@ public class SampleSetup : MonoBehaviour
     private bool ShowEffect = false;
 
     private List<IUpdate> mUpdateList = new List<IUpdate>();
+
+    private SamplePlay samplePlay;
     // Start is called before the first frame update
     void Start()
     {
-        if(UIController)
+        SetButtonActive(false);
+
+        if (ObjectCountinputField)
         {
-            UIController.ObjectCountInputFieldValueChanged += (string v) =>
+            ObjectCountinputField.onValueChanged.AddListener(s =>
             {
+                int.TryParse(s, out Count);
 
-                int.TryParse(v, out Count);
-            };
-
-            UIController.InstantiateButtonClicked += InstantiateObject;
-            UIController.ControllToggleValueChanged += (v) => {
-                Controll = v;
-            };
-
-            UIController.ShowEffectToggleValueChanged += (v) => { ShowEffect = v; };
+            });
         }
 
+        if (InstantiateButton)
+        {
+            InstantiateButton.onClick.AddListener(InstantiateObject);
+        }
 
+        if (ControllToggle)
+        {
+            ControllToggle.onValueChanged.AddListener(v => { 
+                Controll = v;
+                SetButtonActive(v);
+            });
+        }
+        if (ShowEffectToggle)
+        {
+            ShowEffectToggle.onValueChanged.AddListener(v => { ShowEffect = v; });
+        }
+        if(IdleButton)
+        {
+            IdleButton.onClick.AddListener(() => {
+
+                if (samplePlay) samplePlay.PlayIdle();
+            });
+        }
+        if (RunButton)
+        {
+            RunButton.onClick.AddListener(() =>
+            {
+
+                if (samplePlay) samplePlay.PlayRun();
+            });
+        }
+        if (AttackButton)
+        {
+            AttackButton.onClick.AddListener(() =>
+            {
+
+                if (samplePlay) samplePlay.PlayAttack();
+            });
+        }
+        if (DieButton)
+        {
+            DieButton.onClick.AddListener(() =>
+            {
+
+                if (samplePlay) samplePlay.PlayDie();
+            });
+        }
+        if (BlendButton)
+        {
+            BlendButton.onClick.AddListener(() =>
+            {
+
+                if (samplePlay) samplePlay.PlayBlend();
+            });
+        }
     }
-
+    private void SetButtonActive(bool active)
+    {
+        if (IdleButton) IdleButton.gameObject.SetActive(active);
+        if (RunButton) RunButton.gameObject.SetActive(active);
+        if (AttackButton) AttackButton.gameObject.SetActive(active);
+        if (DieButton) DieButton.gameObject.SetActive(active);
+        if (BlendButton) BlendButton.gameObject.SetActive(active);
+    }
     void InstantiateObject()
     {
         for(int i = 0; i < Count; ++i)
@@ -51,7 +128,7 @@ public class SampleSetup : MonoBehaviour
 
             if(Controll)
             {
-                go.AddComponent<SamplePlay>();
+                samplePlay = go.AddComponent<SamplePlay>();
             }
 
             SamplePlayEffect samplePlayEffect = go.GetComponent<SamplePlayEffect>();
