@@ -150,6 +150,7 @@ public class GpuInstancedAnimation : MonoBehaviour, IUpdate
                         if (mBlendAnimationClip != null)
                         {
                             mCurrentAnimationClip = mBlendAnimationClip;
+                            mBlendAnimationClip = null;
                         }
 
                         mPreviousAnimationClip = null;
