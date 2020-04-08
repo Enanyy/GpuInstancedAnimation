@@ -27,7 +27,6 @@ public class GpuInstancedAnimationBoneExport:MonoBehaviour
                     boneHeights.Add(boneHeight);
                 }
                 boneHeight.index = i;
-                boneHeight.height = 0;
             }
         }
     }
