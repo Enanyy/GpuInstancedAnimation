@@ -52,11 +52,10 @@ public class SamplePlayEffect : MonoBehaviour
         if (instancedAnimation != null && mEffect)
         {
             var frame = instancedAnimation.GetBoneFrame(boneName);
-            if (frame != null)
-            {
-                mEffect.transform.position = transform.TransformPoint(frame.localPosition);
-                mEffect.transform.rotation = frame.rotation;
-            }
+
+            mEffect.transform.position = transform.TransformPoint(frame.localPosition);
+            mEffect.transform.rotation = frame.rotation;
+
         }
     }
 }

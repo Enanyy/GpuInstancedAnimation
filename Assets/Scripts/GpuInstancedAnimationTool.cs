@@ -196,7 +196,7 @@ public class GpuInstancedAnimationTool
                 {
                     if (animationBoneExport.bones[i] == bone)
                     {
-                        animationBones.Add(new GpuInstancedAnimationBone { boneName = bone.gameObject.name, index = i });
+                        animationBones.Add(new GpuInstancedAnimationBone { boneName = bone.gameObject.name, index = i,blendWeight = animationBoneExport.GetBoneHeightWeight(i) });
                         var localPosition = targetObject.transform.InverseTransformPoint(bone.position);
                         animationBoneFrames.Add(new GpuInstancedAnimationBoneFrame { localPosition = localPosition, rotation = bone.rotation });
                     }

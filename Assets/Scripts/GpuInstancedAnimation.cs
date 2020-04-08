@@ -36,8 +36,8 @@ public class GpuInstancedAnimation : MonoBehaviour, IUpdate
     private bool mFadeBegin = false;
     private bool mFadeEnd = false;
     private int mFadeBeginAt = 0;
+    private float mFadeStrength = 1;
 
-    private int mBlendFadeFrame = 0;
 
     public bool isBlending
     {
@@ -54,9 +54,11 @@ public class GpuInstancedAnimation : MonoBehaviour, IUpdate
             return null;
         }
     }
+    private int mBlendFadeFrame = 0;
     private bool mBlendBegin = false;
     private bool mBlendEnd = false;
     private int mBlendBeginAt = 0;
+    private float mBlendFadeStrength = 1;
 
     public BlendDirection blendDirection { get; private set; }
 
@@ -113,7 +115,7 @@ public class GpuInstancedAnimation : MonoBehaviour, IUpdate
             }
 
 
-            float fadeStrength = 1;
+            mFadeStrength = 1;
             if (mCurrentAnimationClip != null && mFadeFrame > 0)
             {
                 if (mCurrentAnimationClip.wrapMode == GpuInstancedAnimationClip.WrapMode.Once)
@@ -129,7 +131,7 @@ public class GpuInstancedAnimation : MonoBehaviour, IUpdate
                 int offsetFrame = mCurrentAnimationClip.CurrentFrame - mFadeBeginAt;
                 if (mFadeFrame > 0 && (mFadeBegin || mFadeEnd) && offsetFrame <= mFadeFrame)
                 {
-                    fadeStrength = offsetFrame * 1f / mFadeFrame;
+                    mFadeStrength = offsetFrame * 1f / mFadeFrame;
                     if (mFadeBegin)
                     {
                         if (offsetFrame >= mFadeFrame)
@@ -139,7 +141,7 @@ public class GpuInstancedAnimation : MonoBehaviour, IUpdate
                     }
                     if (mFadeEnd)
                     {
-                        fadeStrength = 1 - fadeStrength;
+                        mFadeStrength = 1 - mFadeStrength;
                     }
                 }
 
@@ -167,7 +169,7 @@ public class GpuInstancedAnimation : MonoBehaviour, IUpdate
 
             int blendFrame = 0;
 
-            float blendFadeStrength = 1;
+            mBlendFadeStrength = 1;
             if (mBlendAnimationClip != null)
             {
                 if (mBlendAnimationClip != mCurrentAnimationClip
@@ -189,7 +191,7 @@ public class GpuInstancedAnimation : MonoBehaviour, IUpdate
                 int offsetFrame = mBlendAnimationClip.CurrentFrame - mBlendBeginAt;
                 if (mBlendFadeFrame > 0 && (mBlendBegin || mBlendEnd) && offsetFrame <= mBlendFadeFrame)
                 {
-                    blendFadeStrength = offsetFrame * 1f / mBlendFadeFrame;
+                    mBlendFadeStrength = offsetFrame * 1f / mBlendFadeFrame;
                     if (mBlendBegin)
                     {
                         if (offsetFrame >= mBlendFadeFrame)
@@ -199,7 +201,7 @@ public class GpuInstancedAnimation : MonoBehaviour, IUpdate
                     }
                     if (mBlendEnd)
                     {
-                        blendFadeStrength = 1 - blendFadeStrength;
+                        mBlendFadeStrength = 1 - mBlendFadeStrength;
                     }
                 }
 
@@ -215,9 +217,9 @@ public class GpuInstancedAnimation : MonoBehaviour, IUpdate
         
             materialPropertyBlock.SetInt("_CurrentFrame", currentFrame);
             materialPropertyBlock.SetInt("_PreviousFrame", previousFrame);
-            materialPropertyBlock.SetFloat("_FadeStrength", fadeStrength);
+            materialPropertyBlock.SetFloat("_FadeStrength", mFadeStrength);
             materialPropertyBlock.SetInt("_BlendFrame", blendFrame);
-            materialPropertyBlock.SetFloat("_BlendFadeStrength", blendFadeStrength);
+            materialPropertyBlock.SetFloat("_BlendFadeStrength", mBlendFadeStrength);
             materialPropertyBlock.SetFloat("_BlendDirection", (int)blendDirection);
         }
 
@@ -300,11 +302,9 @@ public class GpuInstancedAnimation : MonoBehaviour, IUpdate
 
         return null;
     }
-
-    private static GpuInstancedAnimationBoneFrame boneFrame = new GpuInstancedAnimationBoneFrame();
     public GpuInstancedAnimationBoneFrame GetBoneFrame(string boneName)
     {
-        var bone = GetBone(boneName);
+        GpuInstancedAnimationBone bone = GetBone(boneName);
         if (bone != null)
         {
             int currentFrame = 0;
@@ -312,29 +312,52 @@ public class GpuInstancedAnimation : MonoBehaviour, IUpdate
             {
                 currentFrame = mCurrentAnimationClip.RealFrame;
             }
-            int currentIndex = currentFrame * bones.Count + bone.index;
+            GpuInstancedAnimationBoneFrame previousBoneFrame = new GpuInstancedAnimationBoneFrame();
+            GpuInstancedAnimationBoneFrame boneFrame = GetBoneFrame(currentFrame,bone.index);
+            if ( (mFadeBegin || mFadeEnd) && mPreviousAnimationClip != null)
+            {            
+                previousBoneFrame = GetBoneFrame(mPreviousAnimationClip.RealFrame, bone.index);
 
-            var currentBoneFrame = boneFrames[currentIndex];
+                boneFrame = GpuInstancedAnimationBoneFrame.Lerp(previousBoneFrame, boneFrame, mFadeStrength);
+            }
+           
+            if (mBlendAnimationClip != null)
+            {               
+                GpuInstancedAnimationBoneFrame blendBoneFrame = GetBoneFrame(mBlendAnimationClip.RealFrame,bone.index);
 
-            if (mFadeFrame > 0 && mCurrentAnimationClip.CurrentFrame < mFadeFrame && mPreviousAnimationClip != null)
-            {
-                int previousFrame = mPreviousAnimationClip.RealFrame;
+                if ((mFadeBegin || mFadeEnd) && mPreviousAnimationClip != null)
+                {
+                    blendBoneFrame = GpuInstancedAnimationBoneFrame.Lerp(previousBoneFrame, blendBoneFrame, mFadeStrength);
+                }
 
-                int previousIndex = previousFrame * bones.Count + bone.index;
+                if ( mBlendBegin|| mBlendEnd)
+                {
+                    blendBoneFrame = GpuInstancedAnimationBoneFrame.Lerp(boneFrame, blendBoneFrame, mBlendFadeStrength);
+                }
 
-                var previousBoneFrame = boneFrames[previousIndex];
+                float blendWeight = bone.blendWeight;
+                float factor = Mathf.Abs(1 - blendWeight - (int)blendDirection);
 
-                float fadeStrength = mCurrentAnimationClip.CurrentFrame * 1f / mFadeFrame;
-
-                boneFrame.localPosition = Vector3.Lerp(previousBoneFrame.localPosition, currentBoneFrame.localPosition, fadeStrength);
-                boneFrame.rotation = Quaternion.Lerp(previousBoneFrame.rotation, currentBoneFrame.rotation, fadeStrength);
-
-                return boneFrame;
+                boneFrame = GpuInstancedAnimationBoneFrame.Lerp(boneFrame, blendBoneFrame, factor);
             }
 
-            return currentBoneFrame;
+            return boneFrame;
         }
-        return null;
+        return new GpuInstancedAnimationBoneFrame() ;
     }
 
+    private GpuInstancedAnimationBoneFrame GetBoneFrame(int frame, int boneIndex)
+    {
+        int frameIndex = frame * bones.Count + boneIndex;
+        if (frameIndex >= 0 && frameIndex < boneFrames.Count)
+        {
+            GpuInstancedAnimationBoneFrame blendBoneFrame = boneFrames[frameIndex];
+
+            return blendBoneFrame;
+        }
+        return new GpuInstancedAnimationBoneFrame();
+    }
+
+
 }
+
