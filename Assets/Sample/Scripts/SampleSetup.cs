@@ -37,6 +37,8 @@ public class SampleSetup : MonoBehaviour
 
     private SamplePlay samplePlay;
     // Start is called before the first frame update
+
+    private GpuInstancedAnimation controllAnimation;
     void Start()
     {
         SetButtonActive(false);
@@ -60,11 +62,41 @@ public class SampleSetup : MonoBehaviour
             ControllToggle.onValueChanged.AddListener(v => { 
                 Controll = v;
                 SetButtonActive(v);
+
+                if(controllAnimation)
+                {
+                    if (Controll)
+                    {
+                        if (samplePlay == null)
+                        {
+                            samplePlay = controllAnimation.gameObject.AddComponent<SamplePlay>();
+                        }
+                    }
+                    else
+                    {
+                        if (samplePlay)
+                        {
+                            Destroy(samplePlay);
+                            samplePlay = null;
+                        }
+                    }
+                }
+                
             });
         }
         if (ShowEffectToggle)
         {
-            ShowEffectToggle.onValueChanged.AddListener(v => { ShowEffect = v; });
+            ShowEffectToggle.onValueChanged.AddListener(v => { 
+                ShowEffect = v;
+                if(controllAnimation)
+                {
+                    SamplePlayEffect samplePlayEffect = controllAnimation.GetComponent<SamplePlayEffect>();
+                    if (samplePlayEffect != null)
+                    {
+                        samplePlayEffect.enabled = ShowEffect;
+                    }
+                }
+            });
         }
         if(IdleButton)
         {
@@ -120,31 +152,43 @@ public class SampleSetup : MonoBehaviour
         {
             Vector2 v = Random.insideUnitCircle * radius;
 
-            GameObject prefab = Prefabs[Random.Range(0, Prefabs.Count)];
+            GameObject prefab = Prefabs[Count == 1 ? 0 : Random.Range(0, Prefabs.Count)];
 
             GameObject go = Instantiate(prefab) as GameObject;
             go.transform.position = Count == 1?new Vector3(0,5,-10): new Vector3(v.x, 0, v.y);
             go.SetActive(true);
 
-            if(Controll)
+            if(Controll && Count == 1)
             {
                 samplePlay = go.AddComponent<SamplePlay>();
             }
 
             SamplePlayEffect samplePlayEffect = go.GetComponent<SamplePlayEffect>();
-            if(samplePlayEffect!= null)
+            if (samplePlayEffect != null)
             {
-                samplePlayEffect.enabled = ShowEffect;
+                samplePlayEffect.enabled = ShowEffect && Count == 1; 
             }
 
             GpuInstancedAnimation animation = go.GetComponent<GpuInstancedAnimation>();
 
             int index = Random.Range(0, animation.animationClips.Count);
             var animationFrame = animation.animationClips[index];
-            animation.speed = Controll? 1: Random.Range(0.1f, 3);
+            animation.speed = Count == 1? 1: Random.Range(0.5f, 3);
             animation.Play(animationFrame.Name);
 
             mUpdateList.Add(animation);
+
+            if(Count == 1)
+            {
+                controllAnimation = animation;
+            }
+            if(Count > 1)
+            {
+                foreach(var clip in animation.animationClips)
+                {
+                    clip.wrapMode = GpuInstancedAnimationClip.WrapMode.Loop;
+                }
+            }
         }
     }
 

@@ -9,13 +9,28 @@ public class SamplePlayEffect : MonoBehaviour
     private GpuInstancedAnimation instancedAnimation;
 
     private GameObject mEffect;
-    private void Start()
+   
+    private void OnEnable()
     {
-        instancedAnimation = GetComponent<GpuInstancedAnimation>();
-       
-
+        if(instancedAnimation == null)
+        {
+            instancedAnimation = GetComponent<GpuInstancedAnimation>();
+        }
+        if(instancedAnimation == null)
+        {
+            return;
+        }
         instancedAnimation.onAnimationClipBegin += OnAnimationClipBegin;
         instancedAnimation.onAnimationClipEnd += OnAnimationClipEnd;
+    }
+    private void OnDisable()
+    {
+        if (instancedAnimation == null)
+        {
+            return;
+        }
+        instancedAnimation.onAnimationClipBegin -= OnAnimationClipBegin;
+        instancedAnimation.onAnimationClipEnd -= OnAnimationClipEnd;
     }
     void OnAnimationClipEnd(GpuInstancedAnimationClip clip)
     {

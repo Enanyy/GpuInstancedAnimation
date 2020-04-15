@@ -121,6 +121,16 @@ Shader "AnimationGpuInstancing/StandardTransparent" {
 				v.blendWeight.w * v.boneWeight.w;
 			return saturate(blendWeight);
 		}
+
+		VertexData VertexLerp(VertexData a, VertexData b, float factor)
+		{
+			VertexData c;
+
+			c.vertex = a.vertex * (1 - factor) + b.vertex * factor;
+			c.normal = a.normal * (1 - factor) + b.normal * factor;
+
+			return c;
+		}
 		void vert(inout appdata v, out Input o)
 		{
 			UNITY_SETUP_INSTANCE_ID(v);
@@ -144,8 +154,8 @@ Shader "AnimationGpuInstancing/StandardTransparent" {
 
 					previous = GetVertex(previousFrame, v);
 
-					current.vertex = previous.vertex * (1 - fadeStrength) + current.vertex * fadeStrength;
-					current.normal = previous.normal * (1 - fadeStrength) + current.normal * fadeStrength;
+					current = VertexLerp(previous, current, fadeStrength);
+
 				}
 				if (blendFrame > 0)
 				{
@@ -153,8 +163,7 @@ Shader "AnimationGpuInstancing/StandardTransparent" {
 
 					if (fadeStrength < 1)
 					{
-						blend.vertex = previous.vertex * (1 - fadeStrength) + blend.vertex * fadeStrength;
-						blend.normal = previous.normal * (1 - fadeStrength) + blend.normal * fadeStrength;
+						blend = VertexLerp(previous, blend, fadeStrength);
 					}
 					else
 					{
@@ -162,8 +171,7 @@ Shader "AnimationGpuInstancing/StandardTransparent" {
 
 						if (blendFadeStrength >= 0 && blendFadeStrength < 1)
 						{
-							blend.vertex = current.vertex * (1 - blendFadeStrength) + blend.vertex * blendFadeStrength;
-							blend.normal = current.normal * (1 - blendFadeStrength) + blend.normal * blendFadeStrength;
+							blend = VertexLerp(current, blend, blendFadeStrength);
 						}
 					}
 
@@ -172,8 +180,7 @@ Shader "AnimationGpuInstancing/StandardTransparent" {
 					float blendDirection = UNITY_ACCESS_INSTANCED_PROP(_BlendDirection_arr, _BlendDirection);
 					float factor = abs(1 - blendWeight - blendDirection);
 
-					current.vertex = blend.vertex * factor + current.vertex * (1 - factor);
-					current.normal = blend.vertex * factor + current.normal * (1 - factor);
+					current = VertexLerp(current, blend, factor);
 				}
 			}
 
