@@ -57,6 +57,26 @@ public class CameraManager : MonoBehaviour
         Scroll();
     }
 
+    private Plane[] planes;
+    private bool updatePlanes = false;
+
+    public bool TestPlanesAABB(Bounds bounds)
+    {
+        if(mainCamera== null)
+        {
+            return false;
+        }
+
+        if (planes == null || updatePlanes)
+        {
+            planes = GeometryUtility.CalculateFrustumPlanes(mainCamera);
+            updatePlanes = false;
+        }
+
+        return GeometryUtility.TestPlanesAABB(planes, bounds);
+    }
+
+
     Vector3 oldMousePosition;
     Plane mPlane = new Plane(Vector3.up, Vector3.zero);
     void Drag()
@@ -83,6 +103,8 @@ public class CameraManager : MonoBehaviour
                     Vector3 pos = mainCamera.transform.localPosition + rayOld.GetPoint(distance) - dest;
 
                     mainCamera.transform.localPosition = pos;
+
+                    updatePlanes = true;
                 }
 
                 oldMousePosition = Input.mousePosition;
@@ -122,6 +144,8 @@ public class CameraManager : MonoBehaviour
             {
                 mainCamera.transform.position = ray.GetPoint(distance - maxScrollDistance);
             }
+
+            updatePlanes = true;
         }
 
     }

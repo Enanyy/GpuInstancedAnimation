@@ -14,6 +14,34 @@ public enum BlendDirection
 
 public class GpuInstancedAnimation : MonoBehaviour, IUpdate
 {
+    public Vector3 size = new Vector3(1, 2, 1);
+
+    private Bounds mBounds;
+    public Bounds bounds
+    {
+        get
+        {
+            if(mesh!= null)
+            {
+                mBounds.size = mesh.bounds.size;      
+            }
+            mBounds.center = transform.position;
+          
+            return mBounds;
+        }
+    }
+
+    /// <summary>
+    /// 是否被TargetCamera裁剪了
+    /// </summary>
+    public bool isCulling
+    {
+        get
+        {
+            return CameraManager.Instance.TestPlanesAABB(bounds) == false;
+        }
+    }
+
     public Mesh mesh;
     public Material material;
     public const int TargetFrameRate = 30; //帧率
@@ -223,7 +251,10 @@ public class GpuInstancedAnimation : MonoBehaviour, IUpdate
             materialPropertyBlock.SetFloat("_BlendDirection", (int)blendDirection);
         }
 
-        Graphics.DrawMesh(mesh, transform.localToWorldMatrix, material, mLayer, null, 0, materialPropertyBlock);
+        if (isCulling == false)
+        {
+            Graphics.DrawMesh(mesh, transform.localToWorldMatrix, material, mLayer, null, 0, materialPropertyBlock);
+        }
     }
 
     public void Play(string clipName, int offsetFrame = 0, int fadeFrame = 0)
