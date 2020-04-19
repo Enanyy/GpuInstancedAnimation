@@ -8,9 +8,7 @@ Shader "AnimationGpuInstancing/StandardTransparent" {
 		_Metallic("Metallic", Range(0,1)) = 0.0
 
 		[NoScaleOffset] _AnimTex("Animation Texture", 2D) = "white" {}
-		[HideInInspector] [PerRendererData] _CurrentFrame("", Int) = 0
-		[HideInInspector][PerRendererData] _PreviousFrame("", Int) = 0
-		[HideInInspector][PerRendererData] _FadeStrength("", Range(0,1)) = 0
+		
 		[HideInInspector] _PixelCountPerFrame("", Int) = 0
 	}
 
