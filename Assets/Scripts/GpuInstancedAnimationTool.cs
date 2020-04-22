@@ -190,15 +190,19 @@ public class GpuInstancedAnimationTool
         {
             List<GpuInstancedAnimationBone> animationBones = new List<GpuInstancedAnimationBone>();
             List<GpuInstancedAnimationBoneFrame> animationBoneFrames = new List<GpuInstancedAnimationBoneFrame>();
-            foreach (var bone in smr.bones)
+            for (int i = 0; i < smr.bones.Length; ++i)
             {
-                for (int i = 0; i < animationBoneExport.bones.Count; ++i)
+                var bone = smr.bones[i];
+                for (int j = 0; j < animationBoneExport.bones.Count; ++j)
                 {
-                    if (animationBoneExport.bones[i] == bone)
+                    if (animationBoneExport.bones[j] == bone)
                     {
-                        animationBones.Add(new GpuInstancedAnimationBone { boneName = bone.gameObject.name, index = i,blendWeight = animationBoneExport.GetBoneHeightWeight(i) });
-                        var localPosition = targetObject.transform.InverseTransformPoint(bone.position);
-                        animationBoneFrames.Add(new GpuInstancedAnimationBoneFrame { localPosition = localPosition, rotation = bone.rotation });
+                        animationBones.Add(new GpuInstancedAnimationBone { boneName = bone.gameObject.name, index = j, blendWeight = animationBoneExport.GetBoneHeightWeight(j) });
+                        animation.boneFrames.Add(new GpuInstancedAnimationBoneFrame
+                        {
+                            localPosition = targetObject.transform.InverseTransformPoint(bone.position),
+                            localForward = targetObject.transform.InverseTransformVector(bone.forward),
+                        });
                     }
                 }
             }
@@ -215,9 +219,9 @@ public class GpuInstancedAnimationTool
             var frameCount = (int)(clip.length * GpuInstancedAnimation.TargetFrameRate);
             var startFrame = currentClipFrames + 1;
             var endFrame = startFrame + frameCount - 1;
-            
 
-            animationClips.Add(new GpuInstancedAnimationClip(clip.name, startFrame, endFrame, frameCount,clip.isLooping? GpuInstancedAnimationClip.WrapMode.Loop: GpuInstancedAnimationClip.WrapMode.Once));
+
+            animationClips.Add(new GpuInstancedAnimationClip(clip.name, startFrame, endFrame, frameCount, clip.isLooping ? GpuInstancedAnimationClip.WrapMode.Loop : GpuInstancedAnimationClip.WrapMode.Once));
 
             currentClipFrames = endFrame;
 
@@ -228,14 +232,19 @@ public class GpuInstancedAnimationTool
                 {
                     clip.SampleAnimation(targetObject, (float)frame / GpuInstancedAnimation.TargetFrameRate);
 
-                    foreach (var bone in smr.bones)
+                    for (int i = 0; i < smr.bones.Length; ++i)
                     {
-                        for (int i = 0; i < animationBoneExport.bones.Count; ++i)
+                        var bone = smr.bones[i];
+                        for (int j = 0; j < animationBoneExport.bones.Count; ++j)
                         {
-                            if (animationBoneExport.bones[i] == bone)
+                            if (animationBoneExport.bones[j] == bone)
                             {
-                                var localPosition = targetObject.transform.InverseTransformPoint(bone.position);
-                                animation.boneFrames.Add(new GpuInstancedAnimationBoneFrame { localPosition = localPosition, rotation = bone.rotation });
+
+                                animation.boneFrames.Add(new GpuInstancedAnimationBoneFrame
+                                {
+                                    localPosition = targetObject.transform.InverseTransformPoint(bone.position),
+                                    localForward = targetObject.transform.InverseTransformVector(bone.forward),
+                                });
                             }
                         }
                     }

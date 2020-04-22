@@ -11,13 +11,14 @@ public class GpuInstancedAnimationBone
 public struct GpuInstancedAnimationBoneFrame
 {
     public Vector3 localPosition;
-    public Quaternion rotation;
+    public Vector3 localForward;
+
 
     public static GpuInstancedAnimationBoneFrame Lerp(GpuInstancedAnimationBoneFrame a,GpuInstancedAnimationBoneFrame b, float factor)
     {
         GpuInstancedAnimationBoneFrame frame = new GpuInstancedAnimationBoneFrame();
         frame.localPosition = Vector3.Lerp(a.localPosition, b.localPosition, factor);
-        frame.rotation = Quaternion.Lerp(a.rotation, b.rotation, factor);
+        frame.localForward = Vector3.Lerp(a.localForward, b.localForward, factor);
 
         return frame;
     }

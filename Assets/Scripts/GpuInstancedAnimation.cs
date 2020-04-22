@@ -303,6 +303,10 @@ public class GpuInstancedAnimation : MonoBehaviour, IUpdate
 
             return;
         }
+        if(mBlendAnimationClip!= null && mBlendAnimationClip.Name == clipName)
+        {
+            return;
+        }
         blendDirection = direction;
 
         mBlendAnimationClip = animationClips.Find(x => x.Name == clipName);

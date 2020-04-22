@@ -14,6 +14,8 @@ public class SampleSetup : MonoBehaviour
     [SerializeField]
     Toggle ControllToggle;
     [SerializeField]
+    Toggle RotateToggle;
+    [SerializeField]
     Button IdleButton;
     [SerializeField]
     Button RunButton;
@@ -32,6 +34,7 @@ public class SampleSetup : MonoBehaviour
 
     private bool Controll = false;
     private bool ShowEffect = false;
+    private bool Rotate = false;
 
     private List<IUpdate> mUpdateList = new List<IUpdate>();
 
@@ -98,7 +101,22 @@ public class SampleSetup : MonoBehaviour
                 }
             });
         }
-        if(IdleButton)
+        if (RotateToggle)
+        {
+            RotateToggle.onValueChanged.AddListener(v => {
+                Rotate = v;
+                if (controllAnimation)
+                {
+                    SampleRotate sampleRotate = controllAnimation.GetComponent<SampleRotate>();
+                    if (sampleRotate == null) sampleRotate = controllAnimation.gameObject.AddComponent<SampleRotate>();
+                    if (sampleRotate != null)
+                    {
+                        sampleRotate.enabled = Rotate;
+                    }
+                }
+            });
+        }
+        if (IdleButton)
         {
             IdleButton.onClick.AddListener(() => {
 
@@ -161,6 +179,11 @@ public class SampleSetup : MonoBehaviour
             if(Controll && Count == 1)
             {
                 samplePlay = go.AddComponent<SamplePlay>();
+               
+            }
+            if(Rotate && Count == 1)
+            {
+                go.AddComponent<SampleRotate>();
             }
 
             SamplePlayEffect samplePlayEffect = go.GetComponent<SamplePlayEffect>();
