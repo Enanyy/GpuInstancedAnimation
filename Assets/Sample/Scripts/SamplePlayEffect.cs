@@ -68,8 +68,9 @@ public class SamplePlayEffect : MonoBehaviour
         {
             var frame = instancedAnimation.GetBoneFrame(boneName);
 
-            mEffect.transform.position = transform.TransformPoint(frame.localPosition);
-            mEffect.transform.rotation = Quaternion.LookRotation( transform.TransformVector(frame.localForward));
+            frame.Transform(transform.localToWorldMatrix, out Vector3 worldPosition, out Vector3 worldForward);
+            mEffect.transform.position = worldPosition;
+            mEffect.transform.forward = worldForward;
         }
     }
 }
