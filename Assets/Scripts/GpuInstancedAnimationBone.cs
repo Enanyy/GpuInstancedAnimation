@@ -22,6 +22,20 @@ public struct GpuInstancedAnimationBoneFrame
 
         return frame;
     }
+    public void Transform(Matrix4x4 localToWorld, out Vector3 worldPosition, out Vector3 worldForward)
+    {
+        var position = localToWorld * new Vector4(localPosition.x, localPosition.y, localPosition.z, 1);
+        worldPosition = new Vector3(position.x, position.y, position.z);
+        var zero = localToWorld * new Vector4(0, 0, 0, 1);
+        var forward = localToWorld * new Vector4(localForward.x, localForward.y, localForward.z, 1);
+        worldForward = new Vector3(forward.x - zero.x, forward.y - zero.y, forward.z - zero.z).normalized;
+    }
+
+    public void Transform(Transform transform, out Vector3 worldPosition, out Vector3 worldForward)
+    {
+        worldPosition = transform.TransformPoint(localPosition);
+        worldForward = transform.TransformVector(localForward);
+    }
 }
 
 [Serializable]
