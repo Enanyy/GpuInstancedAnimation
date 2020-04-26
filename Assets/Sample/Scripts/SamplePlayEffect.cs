@@ -68,7 +68,7 @@ public class SamplePlayEffect : MonoBehaviour
         {
             var frame = instancedAnimation.GetBoneFrame(boneName);
 
-            frame.Transform(transform.localToWorldMatrix, out Vector3 worldPosition, out Vector3 worldForward);
+            frame.ToWorld(transform.localToWorldMatrix, out Vector3 worldPosition, out Vector3 worldForward);
             mEffect.transform.position = worldPosition;
             mEffect.transform.forward = worldForward;
         }
